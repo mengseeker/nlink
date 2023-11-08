@@ -1,0 +1,38 @@
+syntax = "proto3";
+package api;
+option go_package = "github.com/mengseeker/nlink/core/api";
+
+message Request {
+  string  host = 1;
+  int32   port = 2;
+  string  method = 3;
+  string  path = 4;
+  repeated string headers = 5;
+}
+
+message BodyData {
+  bytes   data = 1;
+}
+
+message Response {
+  int32   code = 1;
+  repeated string headers = 2;
+}
+
+message  HTTPRequest {
+  oneof content {
+    Request request = 1;
+    BodyData body = 2;
+  }
+}
+
+message HTTPResponse {
+  oneof content {
+    Response response = 1;
+    BodyData body = 2;
+  }
+}
+
+service HTTPCaller {
+  rpc HTTPCall(stream HTTPRequest) returns (stream HTTPResponse){};
+}

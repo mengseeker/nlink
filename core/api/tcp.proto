@@ -1,0 +1,23 @@
+syntax = "proto3";
+package api;
+option go_package = "github.com/mengseeker/nlink/core/api";
+
+message SockData {
+  bytes data = 1;
+}
+
+message Sock {
+  string host = 1;
+  int32 port = 2;
+}
+
+message SockRequest {
+  oneof content {
+    Sock sock = 1;
+    SockData data = 2;
+  }
+}
+
+service TCPCaller {
+  rpc TCPCall(stream SockRequest) returns (stream SockData){};
+}
