@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 mengseeker@yeah.net
-
 */
 package cmd
 
@@ -45,7 +44,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.nlink.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is nlink.yaml)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -58,20 +57,15 @@ func initConfig() {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
 	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
-		// Search config in home directory with name ".nlink" (without extension).
-		viper.AddConfigPath(home)
+		viper.AddConfigPath(".")
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".nlink")
+		viper.SetConfigName("nlink")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
-	}
+	err := viper.ReadInConfig()
+	cobra.CheckErr(err)
+	fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 }

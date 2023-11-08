@@ -20,20 +20,17 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type Request struct {
+type Header struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Host    string   `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
-	Port    int32    `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
-	Method  string   `protobuf:"bytes,3,opt,name=method,proto3" json:"method,omitempty"`
-	Path    string   `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
-	Headers []string `protobuf:"bytes,5,rep,name=headers,proto3" json:"headers,omitempty"`
+	Key   string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 }
 
-func (x *Request) Reset() {
-	*x = Request{}
+func (x *Header) Reset() {
+	*x = Header{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_core_api_http_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -41,13 +38,13 @@ func (x *Request) Reset() {
 	}
 }
 
-func (x *Request) String() string {
+func (x *Header) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Request) ProtoMessage() {}
+func (*Header) ProtoMessage() {}
 
-func (x *Request) ProtoReflect() protoreflect.Message {
+func (x *Header) ProtoReflect() protoreflect.Message {
 	mi := &file_core_api_http_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -59,146 +56,23 @@ func (x *Request) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Request.ProtoReflect.Descriptor instead.
-func (*Request) Descriptor() ([]byte, []int) {
+// Deprecated: Use Header.ProtoReflect.Descriptor instead.
+func (*Header) Descriptor() ([]byte, []int) {
 	return file_core_api_http_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Request) GetHost() string {
+func (x *Header) GetKey() string {
 	if x != nil {
-		return x.Host
+		return x.Key
 	}
 	return ""
 }
 
-func (x *Request) GetPort() int32 {
+func (x *Header) GetValue() string {
 	if x != nil {
-		return x.Port
-	}
-	return 0
-}
-
-func (x *Request) GetMethod() string {
-	if x != nil {
-		return x.Method
+		return x.Value
 	}
 	return ""
-}
-
-func (x *Request) GetPath() string {
-	if x != nil {
-		return x.Path
-	}
-	return ""
-}
-
-func (x *Request) GetHeaders() []string {
-	if x != nil {
-		return x.Headers
-	}
-	return nil
-}
-
-type BodyData struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Data []byte `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-}
-
-func (x *BodyData) Reset() {
-	*x = BodyData{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_core_api_http_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *BodyData) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BodyData) ProtoMessage() {}
-
-func (x *BodyData) ProtoReflect() protoreflect.Message {
-	mi := &file_core_api_http_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BodyData.ProtoReflect.Descriptor instead.
-func (*BodyData) Descriptor() ([]byte, []int) {
-	return file_core_api_http_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *BodyData) GetData() []byte {
-	if x != nil {
-		return x.Data
-	}
-	return nil
-}
-
-type Response struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Code    int32    `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
-	Headers []string `protobuf:"bytes,2,rep,name=headers,proto3" json:"headers,omitempty"`
-}
-
-func (x *Response) Reset() {
-	*x = Response{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_core_api_http_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *Response) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Response) ProtoMessage() {}
-
-func (x *Response) ProtoReflect() protoreflect.Message {
-	mi := &file_core_api_http_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Response.ProtoReflect.Descriptor instead.
-func (*Response) Descriptor() ([]byte, []int) {
-	return file_core_api_http_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *Response) GetCode() int32 {
-	if x != nil {
-		return x.Code
-	}
-	return 0
-}
-
-func (x *Response) GetHeaders() []string {
-	if x != nil {
-		return x.Headers
-	}
-	return nil
 }
 
 type HTTPRequest struct {
@@ -206,17 +80,14 @@ type HTTPRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// Types that are assignable to Content:
-	//
-	//	*HTTPRequest_Request
-	//	*HTTPRequest_Body
-	Content isHTTPRequest_Content `protobuf_oneof:"content"`
+	Request *HTTPRequest_Request `protobuf:"bytes,1,opt,name=request,proto3,oneof" json:"request,omitempty"`
+	Body    []byte               `protobuf:"bytes,2,opt,name=body,proto3,oneof" json:"body,omitempty"`
 }
 
 func (x *HTTPRequest) Reset() {
 	*x = HTTPRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_api_http_proto_msgTypes[3]
+		mi := &file_core_api_http_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -229,7 +100,7 @@ func (x *HTTPRequest) String() string {
 func (*HTTPRequest) ProtoMessage() {}
 
 func (x *HTTPRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_core_api_http_proto_msgTypes[3]
+	mi := &file_core_api_http_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -242,62 +113,36 @@ func (x *HTTPRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPRequest.ProtoReflect.Descriptor instead.
 func (*HTTPRequest) Descriptor() ([]byte, []int) {
-	return file_core_api_http_proto_rawDescGZIP(), []int{3}
+	return file_core_api_http_proto_rawDescGZIP(), []int{1}
 }
 
-func (m *HTTPRequest) GetContent() isHTTPRequest_Content {
-	if m != nil {
-		return m.Content
-	}
-	return nil
-}
-
-func (x *HTTPRequest) GetRequest() *Request {
-	if x, ok := x.GetContent().(*HTTPRequest_Request); ok {
+func (x *HTTPRequest) GetRequest() *HTTPRequest_Request {
+	if x != nil {
 		return x.Request
 	}
 	return nil
 }
 
-func (x *HTTPRequest) GetBody() *BodyData {
-	if x, ok := x.GetContent().(*HTTPRequest_Body); ok {
+func (x *HTTPRequest) GetBody() []byte {
+	if x != nil {
 		return x.Body
 	}
 	return nil
 }
-
-type isHTTPRequest_Content interface {
-	isHTTPRequest_Content()
-}
-
-type HTTPRequest_Request struct {
-	Request *Request `protobuf:"bytes,1,opt,name=request,proto3,oneof"`
-}
-
-type HTTPRequest_Body struct {
-	Body *BodyData `protobuf:"bytes,2,opt,name=body,proto3,oneof"`
-}
-
-func (*HTTPRequest_Request) isHTTPRequest_Content() {}
-
-func (*HTTPRequest_Body) isHTTPRequest_Content() {}
 
 type HTTPResponse struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// Types that are assignable to Content:
-	//
-	//	*HTTPResponse_Response
-	//	*HTTPResponse_Body
-	Content isHTTPResponse_Content `protobuf_oneof:"content"`
+	Response *HTTPResponse_Response `protobuf:"bytes,1,opt,name=response,proto3,oneof" json:"response,omitempty"`
+	Body     []byte                 `protobuf:"bytes,2,opt,name=body,proto3,oneof" json:"body,omitempty"`
 }
 
 func (x *HTTPResponse) Reset() {
 	*x = HTTPResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_core_api_http_proto_msgTypes[4]
+		mi := &file_core_api_http_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -310,7 +155,7 @@ func (x *HTTPResponse) String() string {
 func (*HTTPResponse) ProtoMessage() {}
 
 func (x *HTTPResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_core_api_http_proto_msgTypes[4]
+	mi := &file_core_api_http_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -323,85 +168,192 @@ func (x *HTTPResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HTTPResponse.ProtoReflect.Descriptor instead.
 func (*HTTPResponse) Descriptor() ([]byte, []int) {
-	return file_core_api_http_proto_rawDescGZIP(), []int{4}
+	return file_core_api_http_proto_rawDescGZIP(), []int{2}
 }
 
-func (m *HTTPResponse) GetContent() isHTTPResponse_Content {
-	if m != nil {
-		return m.Content
-	}
-	return nil
-}
-
-func (x *HTTPResponse) GetResponse() *Response {
-	if x, ok := x.GetContent().(*HTTPResponse_Response); ok {
+func (x *HTTPResponse) GetResponse() *HTTPResponse_Response {
+	if x != nil {
 		return x.Response
 	}
 	return nil
 }
 
-func (x *HTTPResponse) GetBody() *BodyData {
-	if x, ok := x.GetContent().(*HTTPResponse_Body); ok {
+func (x *HTTPResponse) GetBody() []byte {
+	if x != nil {
 		return x.Body
 	}
 	return nil
 }
 
-type isHTTPResponse_Content interface {
-	isHTTPResponse_Content()
+type HTTPRequest_Request struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Method  string    `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	Url     string    `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	Headers []*Header `protobuf:"bytes,3,rep,name=headers,proto3" json:"headers,omitempty"`
+}
+
+func (x *HTTPRequest_Request) Reset() {
+	*x = HTTPRequest_Request{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_core_api_http_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *HTTPRequest_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HTTPRequest_Request) ProtoMessage() {}
+
+func (x *HTTPRequest_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_core_api_http_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HTTPRequest_Request.ProtoReflect.Descriptor instead.
+func (*HTTPRequest_Request) Descriptor() ([]byte, []int) {
+	return file_core_api_http_proto_rawDescGZIP(), []int{1, 0}
+}
+
+func (x *HTTPRequest_Request) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *HTTPRequest_Request) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *HTTPRequest_Request) GetHeaders() []*Header {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
 }
 
 type HTTPResponse_Response struct {
-	Response *Response `protobuf:"bytes,1,opt,name=response,proto3,oneof"`
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Code          int32     `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	ContentLength int64     `protobuf:"varint,2,opt,name=contentLength,proto3" json:"contentLength,omitempty"`
+	Headers       []*Header `protobuf:"bytes,3,rep,name=headers,proto3" json:"headers,omitempty"`
 }
 
-type HTTPResponse_Body struct {
-	Body *BodyData `protobuf:"bytes,2,opt,name=body,proto3,oneof"`
+func (x *HTTPResponse_Response) Reset() {
+	*x = HTTPResponse_Response{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_core_api_http_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
 }
 
-func (*HTTPResponse_Response) isHTTPResponse_Content() {}
+func (x *HTTPResponse_Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
 
-func (*HTTPResponse_Body) isHTTPResponse_Content() {}
+func (*HTTPResponse_Response) ProtoMessage() {}
+
+func (x *HTTPResponse_Response) ProtoReflect() protoreflect.Message {
+	mi := &file_core_api_http_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HTTPResponse_Response.ProtoReflect.Descriptor instead.
+func (*HTTPResponse_Response) Descriptor() ([]byte, []int) {
+	return file_core_api_http_proto_rawDescGZIP(), []int{2, 0}
+}
+
+func (x *HTTPResponse_Response) GetCode() int32 {
+	if x != nil {
+		return x.Code
+	}
+	return 0
+}
+
+func (x *HTTPResponse_Response) GetContentLength() int64 {
+	if x != nil {
+		return x.ContentLength
+	}
+	return 0
+}
+
+func (x *HTTPResponse_Response) GetHeaders() []*Header {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
+}
 
 var File_core_api_http_proto protoreflect.FileDescriptor
 
 var file_core_api_http_proto_rawDesc = []byte{
 	0x0a, 0x13, 0x63, 0x6f, 0x72, 0x65, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x68, 0x74, 0x74, 0x70, 0x2e,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x03, 0x61, 0x70, 0x69, 0x22, 0x77, 0x0a, 0x07, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x68, 0x6f, 0x73, 0x74, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x04, 0x68, 0x6f, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x70, 0x6f, 0x72,
-	0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x70, 0x6f, 0x72, 0x74, 0x12, 0x16, 0x0a,
-	0x06, 0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x6d,
-	0x65, 0x74, 0x68, 0x6f, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x70, 0x61, 0x74, 0x68, 0x18, 0x04, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x04, 0x70, 0x61, 0x74, 0x68, 0x12, 0x18, 0x0a, 0x07, 0x68, 0x65, 0x61,
-	0x64, 0x65, 0x72, 0x73, 0x18, 0x05, 0x20, 0x03, 0x28, 0x09, 0x52, 0x07, 0x68, 0x65, 0x61, 0x64,
-	0x65, 0x72, 0x73, 0x22, 0x1e, 0x0a, 0x08, 0x42, 0x6f, 0x64, 0x79, 0x44, 0x61, 0x74, 0x61, 0x12,
-	0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x64,
-	0x61, 0x74, 0x61, 0x22, 0x38, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
-	0x12, 0x0a, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x63,
-	0x6f, 0x64, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x18, 0x02,
-	0x20, 0x03, 0x28, 0x09, 0x52, 0x07, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x22, 0x67, 0x0a,
-	0x0b, 0x48, 0x54, 0x54, 0x50, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x28, 0x0a, 0x07,
-	0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0c, 0x2e,
-	0x61, 0x70, 0x69, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x48, 0x00, 0x52, 0x07, 0x72,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x23, 0x0a, 0x04, 0x62, 0x6f, 0x64, 0x79, 0x18, 0x02,
-	0x20, 0x01, 0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x42, 0x6f, 0x64, 0x79, 0x44,
-	0x61, 0x74, 0x61, 0x48, 0x00, 0x52, 0x04, 0x62, 0x6f, 0x64, 0x79, 0x42, 0x09, 0x0a, 0x07, 0x63,
-	0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x22, 0x6b, 0x0a, 0x0c, 0x48, 0x54, 0x54, 0x50, 0x52, 0x65,
-	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x2b, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x48, 0x00, 0x52, 0x08, 0x72, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x12, 0x23, 0x0a, 0x04, 0x62, 0x6f, 0x64, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x0d, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x42, 0x6f, 0x64, 0x79, 0x44, 0x61, 0x74, 0x61,
-	0x48, 0x00, 0x52, 0x04, 0x62, 0x6f, 0x64, 0x79, 0x42, 0x09, 0x0a, 0x07, 0x63, 0x6f, 0x6e, 0x74,
-	0x65, 0x6e, 0x74, 0x32, 0x43, 0x0a, 0x0a, 0x48, 0x54, 0x54, 0x50, 0x43, 0x61, 0x6c, 0x6c, 0x65,
-	0x72, 0x12, 0x35, 0x0a, 0x08, 0x48, 0x54, 0x54, 0x50, 0x43, 0x61, 0x6c, 0x6c, 0x12, 0x10, 0x2e,
-	0x61, 0x70, 0x69, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
-	0x11, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x22, 0x00, 0x28, 0x01, 0x30, 0x01, 0x42, 0x26, 0x5a, 0x24, 0x67, 0x69, 0x74, 0x68,
-	0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6d, 0x65, 0x6e, 0x67, 0x73, 0x65, 0x65, 0x6b, 0x65,
-	0x72, 0x2f, 0x6e, 0x6c, 0x69, 0x6e, 0x6b, 0x2f, 0x63, 0x6f, 0x72, 0x65, 0x2f, 0x61, 0x70, 0x69,
-	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x03, 0x61, 0x70, 0x69, 0x22, 0x30, 0x0a, 0x06, 0x48, 0x65,
+	0x61, 0x64, 0x65, 0x72, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x22, 0xd0, 0x01, 0x0a,
+	0x0b, 0x48, 0x54, 0x54, 0x50, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x37, 0x0a, 0x07,
+	0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x18, 0x2e,
+	0x61, 0x70, 0x69, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x2e,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x48, 0x00, 0x52, 0x07, 0x72, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x88, 0x01, 0x01, 0x12, 0x17, 0x0a, 0x04, 0x62, 0x6f, 0x64, 0x79, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x0c, 0x48, 0x01, 0x52, 0x04, 0x62, 0x6f, 0x64, 0x79, 0x88, 0x01, 0x01, 0x1a, 0x5a,
+	0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x6d, 0x65, 0x74,
+	0x68, 0x6f, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x6d, 0x65, 0x74, 0x68, 0x6f,
+	0x64, 0x12, 0x10, 0x0a, 0x03, 0x75, 0x72, 0x6c, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03,
+	0x75, 0x72, 0x6c, 0x12, 0x25, 0x0a, 0x07, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x18, 0x03,
+	0x20, 0x03, 0x28, 0x0b, 0x32, 0x0b, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x48, 0x65, 0x61, 0x64, 0x65,
+	0x72, 0x52, 0x07, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x42, 0x0a, 0x0a, 0x08, 0x5f, 0x72,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x42, 0x07, 0x0a, 0x05, 0x5f, 0x62, 0x6f, 0x64, 0x79, 0x22,
+	0xe7, 0x01, 0x0a, 0x0c, 0x48, 0x54, 0x54, 0x50, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x12, 0x3b, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x52, 0x65, 0x73,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x48, 0x00,
+	0x52, 0x08, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x88, 0x01, 0x01, 0x12, 0x17, 0x0a,
+	0x04, 0x62, 0x6f, 0x64, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x48, 0x01, 0x52, 0x04, 0x62,
+	0x6f, 0x64, 0x79, 0x88, 0x01, 0x01, 0x1a, 0x6b, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05,
+	0x52, 0x04, 0x63, 0x6f, 0x64, 0x65, 0x12, 0x24, 0x0a, 0x0d, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x6e,
+	0x74, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x0d, 0x63,
+	0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x12, 0x25, 0x0a, 0x07,
+	0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0b, 0x2e,
+	0x61, 0x70, 0x69, 0x2e, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x52, 0x07, 0x68, 0x65, 0x61, 0x64,
+	0x65, 0x72, 0x73, 0x42, 0x0b, 0x0a, 0x09, 0x5f, 0x72, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x42, 0x07, 0x0a, 0x05, 0x5f, 0x62, 0x6f, 0x64, 0x79, 0x32, 0x43, 0x0a, 0x0a, 0x48, 0x54, 0x54,
+	0x50, 0x43, 0x61, 0x6c, 0x6c, 0x65, 0x72, 0x12, 0x35, 0x0a, 0x08, 0x48, 0x54, 0x54, 0x50, 0x43,
+	0x61, 0x6c, 0x6c, 0x12, 0x10, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x11, 0x2e, 0x61, 0x70, 0x69, 0x2e, 0x48, 0x54, 0x54, 0x50,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x28, 0x01, 0x30, 0x01, 0x42, 0x26,
+	0x5a, 0x24, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6d, 0x65, 0x6e,
+	0x67, 0x73, 0x65, 0x65, 0x6b, 0x65, 0x72, 0x2f, 0x6e, 0x6c, 0x69, 0x6e, 0x6b, 0x2f, 0x63, 0x6f,
+	0x72, 0x65, 0x2f, 0x61, 0x70, 0x69, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -418,19 +370,19 @@ func file_core_api_http_proto_rawDescGZIP() []byte {
 
 var file_core_api_http_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_core_api_http_proto_goTypes = []interface{}{
-	(*Request)(nil),      // 0: api.Request
-	(*BodyData)(nil),     // 1: api.BodyData
-	(*Response)(nil),     // 2: api.Response
-	(*HTTPRequest)(nil),  // 3: api.HTTPRequest
-	(*HTTPResponse)(nil), // 4: api.HTTPResponse
+	(*Header)(nil),                // 0: api.Header
+	(*HTTPRequest)(nil),           // 1: api.HTTPRequest
+	(*HTTPResponse)(nil),          // 2: api.HTTPResponse
+	(*HTTPRequest_Request)(nil),   // 3: api.HTTPRequest.Request
+	(*HTTPResponse_Response)(nil), // 4: api.HTTPResponse.Response
 }
 var file_core_api_http_proto_depIdxs = []int32{
-	0, // 0: api.HTTPRequest.request:type_name -> api.Request
-	1, // 1: api.HTTPRequest.body:type_name -> api.BodyData
-	2, // 2: api.HTTPResponse.response:type_name -> api.Response
-	1, // 3: api.HTTPResponse.body:type_name -> api.BodyData
-	3, // 4: api.HTTPCaller.HTTPCall:input_type -> api.HTTPRequest
-	4, // 5: api.HTTPCaller.HTTPCall:output_type -> api.HTTPResponse
+	3, // 0: api.HTTPRequest.request:type_name -> api.HTTPRequest.Request
+	4, // 1: api.HTTPResponse.response:type_name -> api.HTTPResponse.Response
+	0, // 2: api.HTTPRequest.Request.headers:type_name -> api.Header
+	0, // 3: api.HTTPResponse.Response.headers:type_name -> api.Header
+	1, // 4: api.HTTPCaller.HTTPCall:input_type -> api.HTTPRequest
+	2, // 5: api.HTTPCaller.HTTPCall:output_type -> api.HTTPResponse
 	5, // [5:6] is the sub-list for method output_type
 	4, // [4:5] is the sub-list for method input_type
 	4, // [4:4] is the sub-list for extension type_name
@@ -445,7 +397,7 @@ func file_core_api_http_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_core_api_http_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Request); i {
+			switch v := v.(*Header); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -457,30 +409,6 @@ func file_core_api_http_proto_init() {
 			}
 		}
 		file_core_api_http_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BodyData); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_core_api_http_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_core_api_http_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*HTTPRequest); i {
 			case 0:
 				return &v.state
@@ -492,7 +420,7 @@ func file_core_api_http_proto_init() {
 				return nil
 			}
 		}
-		file_core_api_http_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_core_api_http_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*HTTPResponse); i {
 			case 0:
 				return &v.state
@@ -504,15 +432,33 @@ func file_core_api_http_proto_init() {
 				return nil
 			}
 		}
+		file_core_api_http_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*HTTPRequest_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_core_api_http_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*HTTPResponse_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
-	file_core_api_http_proto_msgTypes[3].OneofWrappers = []interface{}{
-		(*HTTPRequest_Request)(nil),
-		(*HTTPRequest_Body)(nil),
-	}
-	file_core_api_http_proto_msgTypes[4].OneofWrappers = []interface{}{
-		(*HTTPResponse_Response)(nil),
-		(*HTTPResponse_Body)(nil),
-	}
+	file_core_api_http_proto_msgTypes[1].OneofWrappers = []interface{}{}
+	file_core_api_http_proto_msgTypes[2].OneofWrappers = []interface{}{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

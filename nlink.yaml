@@ -1,0 +1,8 @@
+server:
+  Addr: :8899
+  TLS_CA: .dev/tls/ca_cert.pem
+  TLS_Cert: .dev/tls/server_cert.pem
+  TLS_Key: .dev/tls/server_key.pem
+  WriteBufferSize: 4096
+
+test: 123
