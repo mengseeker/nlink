@@ -26,8 +26,7 @@ type ServerConfig struct {
 }
 
 type Server struct {
-	api.UnimplementedHTTPCallerServer
-	api.UnimplementedTCPCallerServer
+	api.UnimplementedProxyServer
 	Config *ServerConfig
 
 	httpClient http.Client
@@ -77,8 +76,7 @@ func (s *Server) Start(c context.Context) (err error) {
 	gs := grpc.NewServer(sopts...)
 
 	// register grpc services
-	api.RegisterHTTPCallerServer(gs, s)
-	api.RegisterTCPCallerServer(gs, s)
+	api.RegisterProxyServer(gs, s)
 
 	// listen
 	lis, err := net.Listen("tcp", s.Config.Addr)
@@ -93,7 +91,7 @@ func (s *Server) Start(c context.Context) (err error) {
 	return
 }
 
-func (s *Server) HTTPCall(stream api.HTTPCaller_HTTPCallServer) (err error) {
+func (s *Server) HTTPCall(stream api.Proxy_HTTPCallServer) (err error) {
 	r, err := stream.Recv()
 	if err != nil {
 		return err
@@ -190,6 +188,6 @@ func (s *Server) HTTPCall(stream api.HTTPCaller_HTTPCallServer) (err error) {
 	return
 }
 
-func (s *Server) TCPCall(stream api.TCPCaller_TCPCallServer) (err error) {
+func (s *Server) TCPCall(stream api.Proxy_TCPCallServer) (err error) {
 	return
 }
