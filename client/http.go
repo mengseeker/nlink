@@ -3,21 +3,21 @@ package client
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 
-	"github.com/mengseeker/nlink/core/api"
 	"gopkg.in/elazarl/goproxy.v1"
 )
 
 type ServerConfig struct {
+	Name string
 	Addr string
 	Cert string
 	Key  string
 }
 
 type ProxyConfig struct {
-	Name    string
-	Addr    string
+	Listen  string
 	Verbose bool
 	Rules   []string
 	Servers []ServerConfig
@@ -26,20 +26,29 @@ type ProxyConfig struct {
 type Proxy struct {
 	Config *ProxyConfig
 
-	servers  map[string]api.ProxyServer
 	proxy    *goproxy.ProxyHttpServer
 	provider *FunctionProvider
+}
+
+func NewProxy(cfg ProxyConfig) (p *Proxy, err error) {
+	if cfg.Listen == "" {
+		cfg.Listen = ":7890"
+	}
+	p = &Proxy{
+		Config: &cfg,
+	}
+	p.provider = NewFunctionProvider(p.Config.Servers)
+	return
 }
 
 func (p *Proxy) Start(ctx context.Context) (err error) {
 	p.proxy = goproxy.NewProxyHttpServer()
 	p.proxy.Verbose = p.Config.Verbose
-	p.servers = make(map[string]api.ProxyServer)
-	// TODO connect to proxy servers
 	if err = p.applyRule(); err != nil {
 		return
 	}
-	return http.ListenAndServe(p.Config.Addr, p.proxy)
+	slog.Info("proxy start", "listen", p.Config.Listen)
+	return http.ListenAndServe(p.Config.Listen, p.proxy)
 }
 
 func (p *Proxy) applyRule() (err error) {

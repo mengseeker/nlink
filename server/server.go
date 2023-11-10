@@ -18,11 +18,11 @@ import (
 )
 
 type ServerConfig struct {
-	Addr            string
-	TLS_CA          string
-	TLS_Cert        string
-	TLS_Key         string
-	WriteBufferSize int
+	Addr           string
+	TLS_CA         string
+	TLS_Cert       string
+	TLS_Key        string
+	ReadBufferSize int
 }
 
 type Server struct {
@@ -39,8 +39,8 @@ func NewServer(cfg ServerConfig) (*Server, error) {
 	if cfg.TLS_CA+cfg.TLS_Cert+cfg.TLS_Key == "" {
 		return nil, fmt.Errorf("invalid tls config")
 	}
-	if cfg.WriteBufferSize <= 0 {
-		cfg.WriteBufferSize = 4 << 10
+	if cfg.ReadBufferSize <= 0 {
+		cfg.ReadBufferSize = 4 << 10
 	}
 
 	s := Server{
@@ -99,20 +99,22 @@ func (s *Server) HTTPCall(stream api.Proxy_HTTPCallServer) (err error) {
 	req := r.GetRequest()
 	ir, iw := io.Pipe()
 	defer iw.Close()
-	defer ir.Close()
 	proxyReq, err := http.NewRequestWithContext(stream.Context(), req.Method, req.Url, ir)
 	for i := range req.Headers {
 		proxyReq.Header.Add(req.Headers[i].Key, req.Headers[i].Value)
 	}
-	data := r.GetBody()
-	_, err = iw.Write(data)
-	if err != nil {
-		slog.Error("write request data err", "error", err)
-		return err
-	}
 
-	// handle stream body
+	// handle read client stream write to remote body
+	bodyDone := make(chan any)
 	go func() {
+		defer close(bodyDone)
+		data := r.GetBody()
+		_, err = iw.Write(data)
+		if err != nil {
+			slog.Error("write request data err", "error", err)
+			return
+		}
+
 		defer iw.Close()
 		for {
 			br, err := stream.Recv()
@@ -137,6 +139,7 @@ func (s *Server) HTTPCall(stream api.Proxy_HTTPCallServer) (err error) {
 		return err
 	}
 	defer resp.Body.Close()
+
 	proxyResp := api.HTTPResponse_Response{
 		Code:          int32(resp.StatusCode),
 		ContentLength: resp.ContentLength,
@@ -147,7 +150,7 @@ func (s *Server) HTTPCall(stream api.Proxy_HTTPCallServer) (err error) {
 		}
 	}
 
-	bf := make([]byte, s.Config.WriteBufferSize)
+	bf := make([]byte, s.Config.ReadBufferSize)
 	n, err := resp.Body.Read(bf)
 	if err != nil {
 		if !errors.Is(err, io.EOF) {
@@ -184,10 +187,79 @@ func (s *Server) HTTPCall(stream api.Proxy_HTTPCallServer) (err error) {
 			return
 		}
 	}
-
-	return
+	resp.Body.Close()
+	<-bodyDone
+	return nil
 }
 
 func (s *Server) TCPCall(stream api.Proxy_TCPCallServer) (err error) {
+	r, err := stream.Recv()
+	if err != nil {
+		return err
+	}
+	remoteConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", r.Req.Host, r.Req.Port))
+	if err != nil {
+		return fmt.Errorf("dial remote err %v", err)
+	}
+	defer remoteConn.Close()
+	// try notify client
+	err = stream.Send(&api.SockData{})
+	if err != nil {
+		return fmt.Errorf("notify client err %v", err)
+	}
+
+	// read remote data and write back
+	done := make(chan int)
+	go func() {
+		defer close(done)
+		remoteReadBuff := make([]byte, s.Config.ReadBufferSize)
+		for {
+			n, err := remoteConn.Read(remoteReadBuff)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					return
+				}
+				slog.Error("read remote err", "error", err)
+				return
+			}
+			back := api.SockData{
+				Data: remoteReadBuff[:n],
+			}
+			err = stream.Send(&back)
+			if err != nil {
+				slog.Error("write back err", "error", err)
+				return
+			}
+		}
+	}()
+
+	// read data and write to remote
+	if r.Data != nil {
+		_, err = remoteConn.Write(r.Data.Data)
+		if err != nil {
+			slog.Error("write remote err", "error", err)
+			return
+		}
+	}
+	for {
+		r, err = stream.Recv()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				err = nil
+				break
+			}
+			return err
+		}
+		slog.Error("read req err", "error", err)
+		if r.Data != nil {
+			_, err = remoteConn.Write(r.Data.Data)
+			if err != nil {
+				slog.Error("write remote err", "error", err)
+				return err
+			}
+		}
+	}
+
+	<-done
 	return
 }

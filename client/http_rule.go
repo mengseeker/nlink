@@ -3,6 +3,7 @@ package client
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"regexp"
 	"strings"
@@ -13,18 +14,18 @@ import (
 type RuleCond string
 
 const (
-	RuleCond_HostMatch RuleCond = "HOST"
-	RuleCond_GEOIP     RuleCond = "GEOIP"
-	RuleCond_IPCR      RuleCond = "IPCR"
-	RuleCond_MATCH     RuleCond = "MATCH"
+	RuleCond_HostMatch RuleCond = "host-match"
+	RuleCond_GEOIP     RuleCond = "geoip"
+	RuleCond_IPCIDR    RuleCond = "ip-cidr"
+	RuleCond_MATCH     RuleCond = "match"
 )
 
 type RuleAction string
 
 const (
-	RuleAction_Reject  RuleAction = "REJECT"
-	RuleAction_Direct  RuleAction = "DIRECT"
-	RuleAction_Forward RuleAction = "FORWARD"
+	RuleAction_Reject  RuleAction = "reject"
+	RuleAction_Direct  RuleAction = "direct"
+	RuleAction_Forward RuleAction = "forward"
 )
 
 type ProxyRule struct {
@@ -44,14 +45,15 @@ func UnmashalProxyRule(raw string) (r ProxyRule, err error) {
 		err = ErrInvalidSyntax
 		return
 	}
-	condStr := strings.SplitN(rs[0], ":", 1)
-	r.Cond = RuleCond(strings.TrimSpace(condStr[0]))
+	condStr := strings.SplitN(rs[0], ":", 2)
+	// fmt.Sprintln("condStr", condStr)
+	r.Cond = RuleCond(strings.TrimSpace(strings.ToLower(condStr[0])))
 	if len(condStr) > 1 {
 		r.CondParam = strings.TrimSpace(condStr[1])
 	}
 
-	actionStr := strings.SplitN(rs[1], ":", 1)
-	r.Action = RuleAction(strings.TrimSpace(actionStr[0]))
+	actionStr := strings.SplitN(rs[1], ":", 2)
+	r.Action = RuleAction(strings.TrimSpace(strings.ToLower(actionStr[0])))
 	if len(actionStr) > 1 {
 		r.ActionParam = strings.TrimSpace(actionStr[1])
 	}
@@ -61,12 +63,13 @@ func UnmashalProxyRule(raw string) (r ProxyRule, err error) {
 func (r ProxyRule) BuildProxyConds(pv *FunctionProvider) (conds []goproxy.ReqCondition, err error) {
 	switch r.Cond {
 	case RuleCond_MATCH:
+		conds = append(conds, goproxy.ReqConditionFunc(func(req *http.Request, ctx *goproxy.ProxyCtx) bool { return true }))
 	case RuleCond_HostMatch:
 		conds = append(conds, goproxy.ReqHostMatches(regexp.MustCompile(r.CondParam)))
 	case RuleCond_GEOIP:
 		conds = append(conds, newGEOIPCond(pv, r.CondParam))
-	case RuleCond_IPCR:
-		conds = append(conds, newIPCRCond(pv, r.CondParam))
+	case RuleCond_IPCIDR:
+		conds = append(conds, newIPCIDRRCond(pv, r.CondParam))
 	default:
 		err = fmt.Errorf("unsuport rule cond: %q", r.Cond)
 	}
@@ -80,10 +83,10 @@ func newGEOIPCond(pv *FunctionProvider, country string) goproxy.ReqConditionFunc
 	}
 }
 
-func newIPCRCond(pv *FunctionProvider, ipcr string) goproxy.ReqConditionFunc {
+func newIPCIDRRCond(pv *FunctionProvider, cidr string) goproxy.ReqConditionFunc {
 	return func(req *http.Request, ctx *goproxy.ProxyCtx) bool {
 		ip := pv.Resolver(req.URL.Host)
-		return ipcrMatch(ipcr, ip)
+		return ipcidrMatch(cidr, ip)
 	}
 }
 
@@ -96,14 +99,18 @@ func (r ProxyRule) BuildProxyAction(pv *FunctionProvider) (reqHandle goproxy.Fun
 		reqHandle = RejectReq
 		httpsHandle = goproxy.AlwaysReject
 	case RuleAction_Forward:
-		reqHandle, httpsHandle, err = newForwardHandle(pv, r.ActionParam)
+		reqHandle, httpsHandle = newForwardHTTPHandle(pv, r.ActionParam), newForwardHTTPSHandle(pv, r.ActionParam)
 	default:
 		err = fmt.Errorf("unsuport rule action: %q", r.Action)
 	}
 	return
 }
 
-func ipcrMatch(ipcr, ip string) bool {
-	// TODO
-	return false
+func ipcidrMatch(cidr, ip string) bool {
+	_, ipnet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return false
+	}
+	ipAddr := net.ParseIP(ip)
+	return ipnet.Contains(ipAddr)
 }

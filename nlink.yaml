@@ -5,4 +5,20 @@ server:
   TLS_Key: .dev/tls/server_key.pem
   WriteBufferSize: 4096
 
-test: 123
+client:
+  Listen: :7890
+  Verbose: true
+  servers:
+  - Name: tokyo
+    Addr: localhost:8899
+    Cert: .dev/tls/client/xingbiao_cert.pem
+    Key: .dev/tls/client/xingbiao_key.pem
+  Rules:
+  - 'host-match: baidu.com, forward: tokyo'
+  - 'host-match: ad.com, reject'
+  - 'host-match: google.com, forward: tokyo'
+  - 'ip-cidr: 127.0.0.1/8, direct'
+  - 'ip-cidr: 172.16.0.0/12, direct'
+  - 'ip-cidr: 192.168.1.201/16, direct'
+  - 'geoip: CN, direct'
+  - 'match, forward: tokyo'

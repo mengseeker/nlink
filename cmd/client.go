@@ -4,9 +4,11 @@ Copyright © 2022 mengseeker@yeah.net
 package cmd
 
 import (
-	"fmt"
+	"context"
 
+	"github.com/mengseeker/nlink/client"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // clientCmd represents the client command
@@ -20,7 +22,11 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("client called")
+		var cfg client.ProxyConfig
+		cobra.CheckErr(viper.UnmarshalKey("client", &cfg))
+		s, err := client.NewProxy(cfg)
+		cobra.CheckErr(err)
+		cobra.CheckErr(s.Start(context.TODO()))
 	},
 }
 
