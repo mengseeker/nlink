@@ -91,7 +91,7 @@ func (pv *FunctionProvider) DialHTTP(ctx context.Context, name string) (stream a
 	if err != nil {
 		return
 	}
-	stream, err = cli.HTTPCall(ctx)
+	stream, err = cli.ProxyClient.HTTPCall(ctx)
 	return
 }
 

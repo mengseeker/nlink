@@ -11,7 +11,8 @@ message  HTTPRequest {
   message Request {
     string method = 1;
     string url = 2;
-    repeated Header headers = 3;
+    bool HasBody = 3;
+    repeated Header headers = 4;
   }
   optional Request request = 1;
   optional bytes body = 2;
