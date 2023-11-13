@@ -16,6 +16,7 @@ func DirectHandleConnect(req string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAct
 
 func newForwardHTTPSHandle(pv *FunctionProvider, name string) (handle goproxy.FuncHttpsHandler) {
 	handle = func(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
+		// fmt.Printf("now1: %d\n", time.Now().UnixMilli())
 		cli, err := pv.DialTCP(ctx.Req.Context(), name)
 		if err != nil {
 			ctx.Warnf("dial forward %s tcp err: %v", name, err)
@@ -24,23 +25,39 @@ func newForwardHTTPSHandle(pv *FunctionProvider, name string) (handle goproxy.Fu
 			}, host
 		}
 		// dial
-		_, err = cli.Recv() // read notify
+		dial := api.SockRequest{
+			Req: &api.SockRequest_Sock{
+				Host: host,
+			},
+		}
+		err = cli.Send(&dial)
 		if err != nil {
-			ctx.Warnf("[%v] read remote err: %v", name, err)
+			ctx.Warnf("dial remote err: %v", err)
 			return &goproxy.ConnectAction{
 				Action: goproxy.ConnectReject,
 			}, host
 		}
 
+		// _, err = cli.Recv() // read notify
+		// if err != nil {
+		// 	ctx.Warnf("[%v] read remote err: %v", name, err)
+		// 	return &goproxy.ConnectAction{
+		// 		Action: goproxy.ConnectReject,
+		// 	}, host
+		// }
+
 		return &goproxy.ConnectAction{
 			Action: goproxy.ConnectHijack,
 			Hijack: func(req *http.Request, client net.Conn, ctx *goproxy.ProxyCtx) {
+				// fmt.Printf("now2: %d\n", time.Now().UnixMilli())
 				defer client.Close()
 				defer req.Body.Close()
-				defer cli.CloseSend()
+				
 				// handle body, copy request body to remote
 				go func() {
+					defer cli.CloseSend()
 					readBuffer := make([]byte, pv.ReadBufferSize)
+					// defer func() { fmt.Printf("now3: %d\n", time.Now().UnixMilli()) }()
 					for {
 						n, err := client.Read(readBuffer)
 						if err != nil {
@@ -80,6 +97,7 @@ func newForwardHTTPSHandle(pv *FunctionProvider, name string) (handle goproxy.Fu
 						return
 					}
 				}
+				// fmt.Printf("now4: %d\n", time.Now().UnixMilli())
 			},
 		}, host
 	}

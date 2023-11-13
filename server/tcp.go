@@ -15,7 +15,7 @@ func (s *Server) TCPCall(stream api.Proxy_TCPCallServer) (err error) {
 	if err != nil {
 		return err
 	}
-	remoteConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", r.Req.Host, r.Req.Port))
+	remoteConn, err := net.Dial("tcp", r.Req.Host)
 	if err != nil {
 		return fmt.Errorf("dial remote err %v", err)
 	}
@@ -68,7 +68,10 @@ func (s *Server) TCPCall(stream api.Proxy_TCPCallServer) (err error) {
 			}
 			return err
 		}
-		slog.Error("read req err", "error", err)
+		if err != nil {
+			slog.Error("read req err", "error", err)
+			return err
+		}
 		if r.Data != nil {
 			_, err = remoteConn.Write(r.Data.Data)
 			if err != nil {

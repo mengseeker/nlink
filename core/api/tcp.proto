@@ -9,7 +9,6 @@ message SockData {
 message SockRequest {
   message Sock {
     string host = 1;
-    int32 port = 2;
   }
   optional Sock req = 1;
   optional SockData data = 2;
