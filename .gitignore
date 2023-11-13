@@ -16,3 +16,6 @@
 .nlink.yaml
 .dev/
 .vscode/
+build/bin
+node_modules
+frontend/dist
