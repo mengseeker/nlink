@@ -2,29 +2,43 @@ package client
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 
 	"github.com/mengseeker/nlink/core/api"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
-type ForwardClient struct {
-	api.ProxyClient
-	Name string
-	conn *grpc.ClientConn
+type ProxyStream interface {
+	Context() context.Context
+	CloseSend() error
+}
+
+type Proxy_HTTPCallClient interface {
+	ProxyStream
+	Send(*api.HTTPRequest) error
+	Recv() (*api.HTTPResponse, error)
+}
+
+type Proxy_TCPCallClient interface {
+	ProxyStream
+	Send(*api.SockRequest) error
+	Recv() (*api.SockData, error)
+}
+
+type ForwardClient interface {
+	HTTPCall(ctx context.Context) (Proxy_HTTPCallClient, error)
+	TCPCall(ctx context.Context) (Proxy_TCPCallClient, error)
+	ServerName() string
 }
 
 type FunctionProvider struct {
 	ServerConfigs  map[string]ServerConfig
-	Forwards       map[string]*ForwardClient
+	Forwards       map[string]ForwardClient
 	ReadBufferSize int
 }
 
 func NewFunctionProvider(sc []ServerConfig) *FunctionProvider {
 	pv := FunctionProvider{
-		Forwards:      make(map[string]*ForwardClient),
+		Forwards:      make(map[string]ForwardClient),
 		ServerConfigs: make(map[string]ServerConfig),
 	}
 	for i := range sc {
@@ -35,25 +49,22 @@ func NewFunctionProvider(sc []ServerConfig) *FunctionProvider {
 }
 
 func (pv *FunctionProvider) dialProxyServer(ctx context.Context, name string) (err error) {
-	sc := pv.ServerConfigs[name]
-	cert, err := tls.LoadX509KeyPair(sc.Cert, sc.Key)
-	if err != nil {
-		return fmt.Errorf("failed to load client cert: %v", err)
+	sc, exist := pv.ServerConfigs[name]
+	if !exist {
+		return fmt.Errorf("forward server %q not fround", name)
 	}
-	tls := credentials.NewTLS(&tls.Config{
-		ServerName:         "x.test.example.com",
-		Certificates:       []tls.Certificate{cert},
-		InsecureSkipVerify: true,
-	})
-	conn, err := grpc.Dial(sc.Addr, grpc.WithTransportCredentials(tls))
-	// conn, err := grpc.Dial(sc.Addr, grpc.WithInsecure())
-	if err != nil {
-		return fmt.Errorf("dial server err: %v", err)
-	}
-	pv.Forwards[sc.Name] = &ForwardClient{
-		ProxyClient: api.NewProxyClient(conn),
-		Name:        sc.Name,
-		conn:        conn,
+	if sc.Net == "tcp" {
+		cli, err := DialGrpcServer(ctx, sc)
+		if err != nil {
+			return err
+		}
+		pv.Forwards[name] = cli
+	} else {
+		cli, err := DialQuicServer(ctx, sc)
+		if err != nil {
+			return err
+		}
+		pv.Forwards[name] = cli
 	}
 	return
 }
@@ -74,7 +85,7 @@ func (pv *FunctionProvider) Resolver(domain string) (IP string) {
 	return
 }
 
-func (pv *FunctionProvider) getForwardProxyClient(ctx context.Context, name string) (cli *ForwardClient, err error) {
+func (pv *FunctionProvider) getForwardProxyClient(ctx context.Context, name string) (cli ForwardClient, err error) {
 	cli, ok := pv.Forwards[name]
 	if !ok {
 		err = pv.dialProxyServer(ctx, name)
@@ -86,16 +97,16 @@ func (pv *FunctionProvider) getForwardProxyClient(ctx context.Context, name stri
 	return
 }
 
-func (pv *FunctionProvider) DialHTTP(ctx context.Context, name string) (stream api.Proxy_HTTPCallClient, err error) {
+func (pv *FunctionProvider) DialHTTP(ctx context.Context, name string) (stream Proxy_HTTPCallClient, err error) {
 	cli, err := pv.getForwardProxyClient(ctx, name)
 	if err != nil {
 		return
 	}
-	stream, err = cli.ProxyClient.HTTPCall(ctx)
+	stream, err = cli.HTTPCall(ctx)
 	return
 }
 
-func (pv *FunctionProvider) DialTCP(ctx context.Context, name string) (stream api.Proxy_TCPCallClient, err error) {
+func (pv *FunctionProvider) DialTCP(ctx context.Context, name string) (stream Proxy_TCPCallClient, err error) {
 	cli, err := pv.getForwardProxyClient(ctx, name)
 	if err != nil {
 		return

@@ -24,9 +24,8 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var cfg server.ServerConfig
 		cobra.CheckErr(viper.UnmarshalKey("server", &cfg))
-		s, err := server.NewServer(cfg)
+		err := server.Start(context.TODO(), cfg)
 		cobra.CheckErr(err)
-		cobra.CheckErr(s.Start(context.TODO()))
 	},
 }
 

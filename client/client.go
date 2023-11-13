@@ -10,6 +10,7 @@ import (
 )
 
 type ServerConfig struct {
+	Net  string
 	Name string
 	Addr string
 	Cert string

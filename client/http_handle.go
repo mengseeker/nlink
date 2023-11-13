@@ -137,7 +137,7 @@ func newForwardHTTPHandle(pv *FunctionProvider, name string) (handle goproxy.Fun
 	return
 }
 
-func handleForwardHTTPRequest(pv *FunctionProvider, ctx *goproxy.ProxyCtx, req *http.Request, cli api.Proxy_HTTPCallClient) {
+func handleForwardHTTPRequest(pv *FunctionProvider, ctx *goproxy.ProxyCtx, req *http.Request, cli Proxy_HTTPCallClient) {
 	defer cli.CloseSend()
 	defer req.Body.Close()
 	readBuffer := make([]byte, pv.ReadBufferSize)
