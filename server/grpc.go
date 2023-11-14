@@ -38,7 +38,7 @@ func NewGrpcServer(cfg ServerConfig, handler Handler, log *log.Logger) (*GrpcSer
 }
 
 func (s *GrpcServer) Start(c context.Context) (err error) {
-	tls, err := NewServerTlsConfig(s.Config.TLS_Cert, s.Config.TLS_Key, s.Config.TLS_CA)
+	tls, err := NewServerTls(s.Config.TLS_Cert, s.Config.TLS_Key, s.Config.TLS_CA)
 	if err != nil {
 		return
 	}

@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func NewServerTlsConfig(certFile, keyFile, caFile string) (tc *tls.Config, err error) {
+func NewServerTls(certFile, keyFile, caFile string) (tc *tls.Config, err error) {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		return nil, fmt.Errorf("load tls err: %v", err)

@@ -8,7 +8,6 @@ import (
 )
 
 type ServerConfig struct {
-	Net            string
 	Addr           string
 	TLS_CA         string
 	TLS_Cert       string
@@ -16,16 +15,31 @@ type ServerConfig struct {
 	ReadBufferSize int
 }
 
-func Start(c context.Context, cfg ServerConfig) (err error) {
-	log := log.NewLogger()
+func Start(c context.Context, cfg ServerConfig) {
+	l := log.NewLogger()
 	handler := Handler{
-		Log:            log,
+		Log:            l,
 		ReadBufferSize: cfg.ReadBufferSize,
 		HTTPClient:     http.DefaultClient,
 	}
-	gs, err := NewGrpcServer(cfg, handler, log)
+	gs, err := NewGrpcServer(cfg, handler, l)
 	if err != nil {
-		return
+		panic(err)
 	}
-	return gs.Start(c)
+	go func() {
+		if err := gs.Start(c); err != nil {
+			panic(err)
+		}
+	}()
+	
+	qs, err := NewQuicServer(cfg, handler, l)
+	if err != nil {
+		panic(err)
+	}
+	go func() {
+		if err := qs.Start(c); err != nil {
+			panic(err)
+		}
+	}()
+	<-c.Done()
 }

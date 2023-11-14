@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 
 	"github.com/mengseeker/nlink/core/api"
@@ -29,16 +28,11 @@ func (cli *GrpcForwardClient) TCPCall(ctx context.Context) (Proxy_TCPCallClient,
 }
 
 func DialGrpcServer(ctx context.Context, sc ServerConfig) (cli *GrpcForwardClient, err error) {
-	cert, err := tls.LoadX509KeyPair(sc.Cert, sc.Key)
+	tc, err := NewClientTls(sc.Cert, sc.Key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load client cert: %v", err)
 	}
-	tls := credentials.NewTLS(&tls.Config{
-		ServerName:         "x.test.example.com",
-		Certificates:       []tls.Certificate{cert},
-		InsecureSkipVerify: true,
-	})
-	conn, err := grpc.Dial(sc.Addr, grpc.WithTransportCredentials(tls))
+	conn, err := grpc.Dial(sc.Addr, grpc.WithTransportCredentials(credentials.NewTLS(tc)))
 	if err != nil {
 		return nil, fmt.Errorf("dial server err: %v", err)
 	}
