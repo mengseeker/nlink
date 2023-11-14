@@ -2,11 +2,8 @@ package server
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"net"
-	"os"
 
 	"github.com/mengseeker/nlink/core/api"
 	"github.com/mengseeker/nlink/core/log"
@@ -35,33 +32,18 @@ func NewGrpcServer(cfg ServerConfig, handler Handler, log *log.Logger) (*GrpcSer
 	s := GrpcServer{
 		Config:  &cfg,
 		Handler: handler,
-		Log:     log,
+		Log:     log.With("Unit", "GrpcServer"),
 	}
 	return &s, nil
 }
 
 func (s *GrpcServer) Start(c context.Context) (err error) {
-	// grpc options
-	var sopts []grpc.ServerOption
-	cert, err := tls.LoadX509KeyPair(s.Config.TLS_Cert, s.Config.TLS_Key)
+	tls, err := NewServerTlsConfig(s.Config.TLS_Cert, s.Config.TLS_Key, s.Config.TLS_CA)
 	if err != nil {
-		return fmt.Errorf("load tls err: %v", err)
+		return
 	}
-	ca := x509.NewCertPool()
-	caBytes, err := os.ReadFile(s.Config.TLS_CA)
-	if err != nil {
-		return fmt.Errorf("load ca err: %v", err)
-	}
-	if ok := ca.AppendCertsFromPEM(caBytes); !ok {
-		return fmt.Errorf("failed to parse ca %q", s.Config.TLS_CA)
-	}
-	sopts = append(sopts, grpc.Creds(credentials.NewTLS(&tls.Config{
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		Certificates: []tls.Certificate{cert},
-		ClientCAs:    ca,
-	})))
 
-	gs := grpc.NewServer(sopts...)
+	gs := grpc.NewServer(grpc.Creds(credentials.NewTLS(tls)))
 
 	// register grpc services
 	api.RegisterProxyServer(gs, s)
