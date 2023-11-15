@@ -71,23 +71,25 @@ func (s *QuicServer) handleClient(c context.Context, conn quic.Connection) {
 }
 
 func (s *QuicServer) handleStream(c context.Context, stream quic.Stream) {
+	streamLog := s.Log.With("streamID", stream.StreamID())
 	defer stream.Close()
+	defer streamLog.Debug("server close stream")
 	header, err := quics.ReadHeader(stream)
 	if err != nil {
-		s.Log.Errorf("read stream header err: %v", err)
+		streamLog.Errorf("read stream header err: %v", err)
 		return
 	}
 	switch header.StreamType() {
 	case quics.StreamType_TCP:
 		if err = s.Handler.TCPCall(&QuicTCPCallStream{stream: stream}); err != nil {
-			s.Log.Errorf("handle http stream err: %v", err)
+			streamLog.Errorf("handle tcp stream err: %v", err)
 		}
 	case quics.StreamType_HTTP:
 		if err = s.Handler.HTTPCall(&QuicHTTPCallStream{stream: stream}); err != nil {
-			s.Log.Errorf("handle http stream err: %v", err)
+			streamLog.Errorf("handle http stream err: %v", err)
 		}
 	default:
-		s.Log.Errorf("invalid streamtype: %x", header)
+		streamLog.Errorf("invalid streamtype: %x", header)
 	}
 }
 

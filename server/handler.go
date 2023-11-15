@@ -95,6 +95,9 @@ func (s *Handler) HTTPCall(stream Proxy_HTTPCallServer) (err error) {
 				return
 			}
 		}
+		if n == 0 {
+			continue
+		}
 		err = stream.Send(&api.HTTPResponse{
 			Body: bf[:n],
 		})

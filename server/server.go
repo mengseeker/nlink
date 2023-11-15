@@ -17,6 +17,9 @@ type ServerConfig struct {
 
 func Start(c context.Context, cfg ServerConfig) {
 	l := log.NewLogger()
+	if cfg.ReadBufferSize <= 0 {
+		cfg.ReadBufferSize = 4 << 10
+	}
 	handler := Handler{
 		Log:            l,
 		ReadBufferSize: cfg.ReadBufferSize,
@@ -31,7 +34,7 @@ func Start(c context.Context, cfg ServerConfig) {
 			panic(err)
 		}
 	}()
-	
+
 	qs, err := NewQuicServer(cfg, handler, l)
 	if err != nil {
 		panic(err)

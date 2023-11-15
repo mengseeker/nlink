@@ -97,7 +97,7 @@ func (r ProxyRule) BuildProxyAction(pv *FunctionProvider) (reqHandle goproxy.Fun
 		httpsHandle = DirectHandleConnect
 	case RuleAction_Reject:
 		reqHandle = RejectReq
-		httpsHandle = goproxy.AlwaysReject
+		httpsHandle = RejectHandleConnect
 	case RuleAction_Forward:
 		reqHandle, httpsHandle = newForwardHTTPHandle(pv, r.ActionParam), newForwardHTTPSHandle(pv, r.ActionParam)
 	default:

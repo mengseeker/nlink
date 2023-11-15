@@ -22,12 +22,16 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var cfg client.ProxyConfig
-		cobra.CheckErr(viper.UnmarshalKey("client", &cfg))
-		s, err := client.NewProxy(cfg)
-		cobra.CheckErr(err)
-		cobra.CheckErr(s.Start(context.TODO()))
+		runClient()
 	},
+}
+
+func runClient() {
+	var cfg client.ProxyConfig
+	cobra.CheckErr(viper.UnmarshalKey("client", &cfg))
+	s, err := client.NewProxy(cfg)
+	cobra.CheckErr(err)
+	cobra.CheckErr(s.Start(context.TODO()))
 }
 
 func init() {

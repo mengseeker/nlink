@@ -101,5 +101,6 @@ func (cli *QuicProxy_TCPCallClient) Context() context.Context {
 	return cli.stream.Context()
 }
 func (cli *QuicProxy_TCPCallClient) CloseSend() error {
-	return cli.stream.Close()
+	cli.stream.Close()
+	return nil
 }

@@ -5,33 +5,50 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/mengseeker/nlink/core/log"
 	"github.com/quic-go/quic-go"
 	"google.golang.org/protobuf/proto"
 )
 
+var (
+	l = log.With("Unit", "quics")
+)
+
 func RecvMsg(stream quic.Stream, msg proto.Message) (err error) {
-	msgLen := make([]byte, 4)
-	n, err := stream.Read(msgLen)
+	frame, err := RecvFrame(stream)
 	if err != nil {
-		return err
+		return
 	}
-	if n != 4 {
-		return fmt.Errorf("recv invalid msgLen data")
-	}
-	ilen := int(binary.LittleEndian.Uint32(msgLen))
-	data := make([]byte, ilen)
-	n, err = stream.Read(data)
-	if err != nil {
-		return err
-	}
-	if n != ilen {
-		return fmt.Errorf("recv invalid msg length")
-	}
-	err = proto.Unmarshal(data, msg)
+	err = proto.Unmarshal(frame, msg)
 	if err != nil {
 		return fmt.Errorf("unmarshal msg err: %v", err)
 	}
+	l.Debugf("RecvMsg, len: %d", len(frame))
 	return err
+}
+
+func RecvFrame(stream quic.Stream) (frame []byte, err error) {
+	msgLen := make([]byte, 4)
+	n, err := stream.Read(msgLen)
+	if err != nil {
+		return nil, err
+	}
+	if n != 4 {
+		return nil, fmt.Errorf("recv invalid frameLen data")
+	}
+	ilen := int(binary.LittleEndian.Uint32(msgLen))
+	frame = make([]byte, ilen)
+	n, err = stream.Read(frame)
+	if err != nil {
+		if n == ilen {
+			return frame, nil
+		}
+		return nil, err
+	}
+	if n != ilen {
+		return nil, fmt.Errorf("recv invalid frame length")
+	}
+	return
 }
 
 func SendMsg(stream quic.Stream, msg proto.Message) (err error) {
@@ -39,12 +56,17 @@ func SendMsg(stream quic.Stream, msg proto.Message) (err error) {
 	if err != nil {
 		return fmt.Errorf("mashal msg err: %v", err)
 	}
+	l.Debugf("SendMsg, len: %d", len(data))
+	return SendFrame(stream, data)
+}
+
+func SendFrame(stream quic.Stream, frame []byte) (err error) {
 	msgLen := make([]byte, 4)
-	binary.LittleEndian.PutUint32(msgLen, uint32(len(data)))
+	binary.LittleEndian.PutUint32(msgLen, uint32(len(frame)))
 	if _, err = stream.Write(msgLen); err != nil {
 		return err
 	}
-	_, err = stream.Write(data)
+	_, err = stream.Write(frame)
 	return err
 }
 
@@ -71,7 +93,7 @@ func (h *StreamHeader) SetStreamType(t StreamType) {
 }
 
 func WriteHeader(stream quic.SendStream, h StreamHeader) (err error) {
-	// fmt.Printf("header: %x\n", h)
+	l.Debugf("WriteHeader: %x", h)
 	n, err := stream.Write(h[:])
 	if err != nil {
 		return
@@ -90,5 +112,6 @@ func ReadHeader(stream quic.ReceiveStream) (h StreamHeader, err error) {
 	if n != len(h) {
 		return h, errors.New("read header: invalid length")
 	}
+	l.Debugf("ReadHeader: %x", h)
 	return
 }

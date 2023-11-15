@@ -11,6 +11,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	alsoClient bool
+)
+
 // serverCmd represents the serve command
 var serverCmd = &cobra.Command{
 	Use:   "server",
@@ -22,14 +26,23 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var cfg server.ServerConfig
-		cobra.CheckErr(viper.UnmarshalKey("server", &cfg))
-		server.Start(context.TODO(), cfg)
+		if alsoClient {
+			go runClient()
+		}
+		runServer()
 	},
+}
+
+func runServer() {
+	var cfg server.ServerConfig
+	cobra.CheckErr(viper.UnmarshalKey("server", &cfg))
+	server.Start(context.TODO(), cfg)
 }
 
 func init() {
 	rootCmd.AddCommand(serverCmd)
+
+	serverCmd.Flags().BoolVar(&alsoClient, "client", false, "start client")
 
 	// Here you will define your flags and configuration settings.
 

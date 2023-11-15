@@ -3,10 +3,14 @@ package client
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 
+	"github.com/mengseeker/nlink/core/log"
 	"gopkg.in/elazarl/goproxy.v1"
+)
+
+var (
+	l = log.With("Uint", "client")
 )
 
 type ServerConfig struct {
@@ -48,7 +52,7 @@ func (p *Proxy) Start(ctx context.Context) (err error) {
 	if err = p.applyRule(); err != nil {
 		return
 	}
-	slog.Info("proxy start", "listen", p.Config.Listen)
+	l.Infof("proxy listen at: %s", p.Config.Listen)
 	return http.ListenAndServe(p.Config.Listen, p.proxy)
 }
 

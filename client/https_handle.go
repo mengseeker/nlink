@@ -11,15 +11,22 @@ import (
 )
 
 func DirectHandleConnect(req string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
+	l.Info("direct connect", "host", req)
 	return goproxy.OkConnect, ctx.Req.URL.Host
+}
+
+func RejectHandleConnect(req string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
+	l.Info("reject connect", "host", req)
+	return goproxy.RejectConnect, ctx.Req.URL.Host
 }
 
 func newForwardHTTPSHandle(pv *FunctionProvider, name string) (handle goproxy.FuncHttpsHandler) {
 	handle = func(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
-		// fmt.Printf("now1: %d\n", time.Now().UnixMilli())
+		hlog := l.With("forward", name)
+		hlog.Info("forward connect", "host", host)
 		cli, err := pv.DialTCP(ctx.Req.Context(), name)
 		if err != nil {
-			ctx.Warnf("dial forward %s tcp err: %v", name, err)
+			hlog.Errorf("dial forward tcp err: %v", err)
 			return &goproxy.ConnectAction{
 				Action: goproxy.ConnectReject,
 			}, host
@@ -32,19 +39,11 @@ func newForwardHTTPSHandle(pv *FunctionProvider, name string) (handle goproxy.Fu
 		}
 		err = cli.Send(&dial)
 		if err != nil {
-			ctx.Warnf("dial remote err: %v", err)
+			hlog.Errorf("dial remote err: %v", err)
 			return &goproxy.ConnectAction{
 				Action: goproxy.ConnectReject,
 			}, host
 		}
-
-		// _, err = cli.Recv() // read notify
-		// if err != nil {
-		// 	ctx.Warnf("[%v] read remote err: %v", name, err)
-		// 	return &goproxy.ConnectAction{
-		// 		Action: goproxy.ConnectReject,
-		// 	}, host
-		// }
 
 		return &goproxy.ConnectAction{
 			Action: goproxy.ConnectHijack,
@@ -52,7 +51,7 @@ func newForwardHTTPSHandle(pv *FunctionProvider, name string) (handle goproxy.Fu
 				// fmt.Printf("now2: %d\n", time.Now().UnixMilli())
 				defer client.Close()
 				defer req.Body.Close()
-				
+
 				// handle body, copy request body to remote
 				go func() {
 					defer cli.CloseSend()
@@ -64,9 +63,12 @@ func newForwardHTTPSHandle(pv *FunctionProvider, name string) (handle goproxy.Fu
 							if errors.Is(err, io.EOF) {
 								return
 							} else {
-								ctx.Warnf("handle read body data err: %v", err)
+								hlog.Errorf("handle read body data err: %v", err)
 								return
 							}
+						}
+						if n == 0 {
+							continue
 						}
 						data := api.SockRequest{
 							Data: &api.SockData{
@@ -75,7 +77,7 @@ func newForwardHTTPSHandle(pv *FunctionProvider, name string) (handle goproxy.Fu
 						}
 						err = cli.Send(&data)
 						if err != nil {
-							ctx.Warnf("handle send data err: %v", err)
+							hlog.Errorf("handle send data err: %v", err)
 							return
 						}
 					}
@@ -87,13 +89,13 @@ func newForwardHTTPSHandle(pv *FunctionProvider, name string) (handle goproxy.Fu
 						if errors.Is(err, io.EOF) {
 							break
 						} else {
-							ctx.Warnf("handle read remote err: %v", err)
+							hlog.Errorf("handle read remote err: %v", err)
 							return
 						}
 					}
 					_, err = client.Write(resp.Data)
 					if err != nil {
-						ctx.Warnf("handle write back err: %v", err)
+						hlog.Errorf("handle write back err: %v", err)
 						return
 					}
 				}

@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/mengseeker/nlink/core/api"
+	"github.com/mengseeker/nlink/core/log"
 	"gopkg.in/elazarl/goproxy.v1"
 )
 
@@ -20,11 +21,12 @@ var (
 )
 
 func DirectReqHandle(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+	l.Info("direct request", "url", ctx.Req.URL)
 	deleteRequestHeaders(req)
 	resp, err := ctx.RoundTrip(req)
 	if err != nil {
 		if resp == nil {
-			ctx.Logf("error read response %v %v:", req.URL.Host, err.Error())
+			l.Errorf("error read response %v %v:", req.URL.Host, err.Error())
 			resp = goproxy.NewResponse(req,
 				goproxy.ContentTypeText, http.StatusBadGateway,
 				err.Error())
@@ -34,6 +36,7 @@ func DirectReqHandle(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *
 }
 
 func RejectReq(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+	l.Info("reject request", "url", ctx.Req.URL)
 	return req, goproxy.NewResponse(req,
 		goproxy.ContentTypeText, http.StatusForbidden, http.StatusText(http.StatusForbidden))
 }
@@ -72,19 +75,22 @@ func deleteRequestHeaders(req *http.Request) {
 
 func newForwardHTTPHandle(pv *FunctionProvider, name string) (handle goproxy.FuncReqHandler) {
 	handle = func(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+		hlog := l.With("forward", name)
+		hlog.Info("forward request", "url", ctx.Req.URL)
 		cli, err := pv.DialHTTP(req.Context(), name)
 		if err != nil {
-			ctx.Warnf("[%s] dial forward err: %v", name, err)
+			hlog.Errorf("dial forward err: %v", err)
 			return req, goproxy.NewResponse(req,
 				goproxy.ContentTypeText, http.StatusBadGateway, "proxy dial forward err")
 		}
 
 		// copy request body
-		go handleForwardHTTPRequest(pv, ctx, req, cli)
+		go handleForwardHTTPRequest(pv, ctx, req, cli, hlog)
 
 		// wait remote response
 		remoteResp, err := cli.Recv()
 		if err != nil {
+			hlog.Errorf("recv response err: %v", err)
 			cli.CloseSend()
 			return req, goproxy.NewResponse(req,
 				goproxy.ContentTypeText, http.StatusBadGateway, fmt.Sprintf("proxy recv err: %v", err))
@@ -108,7 +114,7 @@ func newForwardHTTPHandle(pv *FunctionProvider, name string) (handle goproxy.Fun
 			defer respw.Close()
 			_, err = respw.Write(remoteResp.Body)
 			if err != nil {
-				ctx.Warnf("handle write back err: %v", err)
+				hlog.Errorf("handle write back err: %v", err)
 				return
 			}
 
@@ -118,14 +124,14 @@ func newForwardHTTPHandle(pv *FunctionProvider, name string) (handle goproxy.Fun
 					if errors.Is(err, io.EOF) {
 						return
 					} else {
-						ctx.Warnf("handle read remote err: %v", err)
+						hlog.Errorf("handle read remote err: %v", err)
 						return
 					}
 				}
 				if remoteResp.Body != nil {
 					_, err = respw.Write(remoteResp.Body)
 					if err != nil {
-						ctx.Warnf("handle write back err: %v", err)
+						hlog.Errorf("handle write back err: %v", err)
 						return
 					}
 				}
@@ -137,14 +143,17 @@ func newForwardHTTPHandle(pv *FunctionProvider, name string) (handle goproxy.Fun
 	return
 }
 
-func handleForwardHTTPRequest(pv *FunctionProvider, ctx *goproxy.ProxyCtx, req *http.Request, cli Proxy_HTTPCallClient) {
-	defer cli.CloseSend()
-	defer req.Body.Close()
+func handleForwardHTTPRequest(pv *FunctionProvider, ctx *goproxy.ProxyCtx, req *http.Request, cli Proxy_HTTPCallClient, hlog *log.Logger) {
+	defer func() {
+		cli.CloseSend()
+		req.Body.Close()
+		hlog.Debug("client close stream")
+	}()
 	readBuffer := make([]byte, pv.ReadBufferSize)
 
 	n, err := req.Body.Read(readBuffer)
 	if err != nil && !errors.Is(err, io.EOF) {
-		ctx.Warnf("handle read body data err: %v", err)
+		hlog.Errorf("handle read body data err: %v", err)
 		return
 	}
 
@@ -158,7 +167,7 @@ func handleForwardHTTPRequest(pv *FunctionProvider, ctx *goproxy.ProxyCtx, req *
 
 	err = cli.Send(&data)
 	if err != nil {
-		ctx.Warnf("handle send data err: %v", err)
+		hlog.Errorf("handle send data err: %v", err)
 		return
 	}
 
@@ -168,16 +177,19 @@ func handleForwardHTTPRequest(pv *FunctionProvider, ctx *goproxy.ProxyCtx, req *
 			if errors.Is(err, io.EOF) {
 				return
 			} else {
-				ctx.Warnf("handle read body data err: %v", err)
+				hlog.Errorf("handle read body data err: %v", err)
 				return
 			}
+		}
+		if n == 0 {
+			continue
 		}
 		data := api.HTTPRequest{
 			Body: readBuffer[:n],
 		}
 		err = cli.Send(&data)
 		if err != nil {
-			ctx.Warnf("handle send data err: %v", err)
+			hlog.Errorf("handle send data err: %v", err)
 			return
 		}
 	}

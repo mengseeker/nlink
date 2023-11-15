@@ -2,6 +2,7 @@ package log
 
 import (
 	"fmt"
+	"os"
 
 	"golang.org/x/exp/slog"
 )
@@ -11,8 +12,12 @@ type Logger struct {
 }
 
 func NewLogger() *Logger {
+	l := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		// AddSource: true,
+		Level: slog.LevelDebug,
+	}))
 	return &Logger{
-		Logger: *slog.Default(),
+		Logger: *l,
 	}
 }
 
