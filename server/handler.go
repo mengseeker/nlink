@@ -86,6 +86,15 @@ func (s *Handler) HTTPCall(stream Proxy_HTTPCallServer) (err error) {
 
 	for {
 		n, err = resp.Body.Read(bf)
+		if n > 0 {
+			err = stream.Send(&api.HTTPResponse{
+				Body: bf[:n],
+			})
+			if err != nil {
+				s.Log.Error("write response err", "error", err)
+				return
+			}
+		}
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				err = nil
@@ -94,16 +103,6 @@ func (s *Handler) HTTPCall(stream Proxy_HTTPCallServer) (err error) {
 				s.Log.Error("read response body err", "error", err)
 				return
 			}
-		}
-		if n == 0 {
-			continue
-		}
-		err = stream.Send(&api.HTTPResponse{
-			Body: bf[:n],
-		})
-		if err != nil {
-			s.Log.Error("write response err", "error", err)
-			return
 		}
 	}
 	resp.Body.Close()
@@ -158,19 +157,21 @@ func (s *Handler) TCPCall(stream Proxy_TCPCallServer) (err error) {
 		remoteReadBuff := make([]byte, s.ReadBufferSize)
 		for {
 			n, err := remoteConn.Read(remoteReadBuff)
+			if n > 0 {
+				back := api.SockData{
+					Data: remoteReadBuff[:n],
+				}
+				err = stream.Send(&back)
+				if err != nil {
+					s.Log.Error("write back err", "error", err)
+					return
+				}
+			}
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					return
 				}
 				s.Log.Error("read remote err", "error", err)
-				return
-			}
-			back := api.SockData{
-				Data: remoteReadBuff[:n],
-			}
-			err = stream.Send(&back)
-			if err != nil {
-				s.Log.Error("write back err", "error", err)
 				return
 			}
 		}

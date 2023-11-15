@@ -173,6 +173,16 @@ func handleForwardHTTPRequest(pv *FunctionProvider, ctx *goproxy.ProxyCtx, req *
 
 	for {
 		n, err = req.Body.Read(readBuffer)
+		if n > 0 {
+			data := api.HTTPRequest{
+				Body: readBuffer[:n],
+			}
+			err = cli.Send(&data)
+			if err != nil {
+				hlog.Errorf("handle send data err: %v", err)
+				return
+			}
+		}
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return
@@ -180,17 +190,6 @@ func handleForwardHTTPRequest(pv *FunctionProvider, ctx *goproxy.ProxyCtx, req *
 				hlog.Errorf("handle read body data err: %v", err)
 				return
 			}
-		}
-		if n == 0 {
-			continue
-		}
-		data := api.HTTPRequest{
-			Body: readBuffer[:n],
-		}
-		err = cli.Send(&data)
-		if err != nil {
-			hlog.Errorf("handle send data err: %v", err)
-			return
 		}
 	}
 }

@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/mengseeker/nlink/core/api"
@@ -11,9 +12,12 @@ import (
 )
 
 type QuicForwardClient struct {
+	sc                    ServerConfig
 	name                  string
 	conn                  quic.Connection
 	QuicOpenStreamTimeout time.Duration
+	lock                  sync.RWMutex
+	err                   bool
 }
 
 func (cli *QuicForwardClient) ServerName() string {
@@ -43,28 +47,63 @@ func (cli *QuicForwardClient) TCPCall(ctx context.Context) (stream Proxy_TCPCall
 }
 
 func (cli *QuicForwardClient) NewStream(ctx context.Context, h quics.StreamHeader) (stream quic.Stream, err error) {
+	cli.lock.Lock()
+	defer cli.lock.Unlock()
 	stream, err = cli.conn.OpenStreamSync(ctx)
 	if err != nil {
+		cli.err = true
 		return
 	}
 	err = quics.WriteHeader(stream, h)
 	return
 }
 
-func DialQuicServer(ctx context.Context, sc ServerConfig) (cli *QuicForwardClient, err error) {
+func (cli *QuicForwardClient) handleReconnect(ctx context.Context) {
+	tk := time.NewTicker(time.Second * 10)
+	defer tk.Stop()
+	for range tk.C {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if cli.err {
+				func() {
+					cli.lock.Lock()
+					defer cli.lock.Unlock()
+					conn, err := DialQuicConn(ctx, cli.sc)
+					if err != nil {
+						cli.conn = conn
+						cli.err = false
+						l.With("name", cli.name).Warnf("forward client reconnect")
+					}
+				}()
+			}
+		}
+	}
+}
+
+func DialQuicConn(ctx context.Context, sc ServerConfig) (conn quic.Connection, err error) {
 	tc, err := NewClientTls(sc.Cert, sc.Key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load client cert: %v", err)
 	}
-	conn, err := quic.DialAddr(ctx, sc.Addr, tc, &quic.Config{})
+	conn, err = quic.DialAddr(ctx, sc.Addr, tc, &quic.Config{})
 	if err != nil {
 		return
 	}
+	return
+}
+
+func DialQuicServer(ctx context.Context, sc ServerConfig) (cli *QuicForwardClient, err error) {
+	conn, err := DialQuicConn(ctx, sc)
 	cli = &QuicForwardClient{
+		sc:                    sc,
 		name:                  sc.Name,
 		conn:                  conn,
 		QuicOpenStreamTimeout: time.Second,
+		lock:                  sync.RWMutex{},
 	}
+	go cli.handleReconnect(ctx)
 	return
 }
 

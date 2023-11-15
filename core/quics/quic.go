@@ -14,6 +14,15 @@ var (
 	l = log.With("Unit", "quics")
 )
 
+func SendMsg(stream quic.Stream, msg proto.Message) (err error) {
+	data, err := proto.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("mashal msg err: %v", err)
+	}
+	l.Debugf("SendMsg, len: %d", len(data))
+	return SendFrame(stream, data)
+}
+
 func RecvMsg(stream quic.Stream, msg proto.Message) (err error) {
 	frame, err := RecvFrame(stream)
 	if err != nil {
@@ -24,6 +33,19 @@ func RecvMsg(stream quic.Stream, msg proto.Message) (err error) {
 		return fmt.Errorf("unmarshal msg err: %v", err)
 	}
 	l.Debugf("RecvMsg, len: %d", len(frame))
+	return err
+}
+
+func SendFrame(stream quic.Stream, frame []byte) (err error) {
+	msgLen := make([]byte, 4)
+	binary.LittleEndian.PutUint32(msgLen, uint32(len(frame)))
+	if _, err = stream.Write(msgLen); err != nil {
+		return err
+	}
+	n, err := stream.Write(frame)
+	if n != len(frame) {
+		panic("sendFram invalid length")
+	}
 	return err
 }
 
@@ -38,36 +60,18 @@ func RecvFrame(stream quic.Stream) (frame []byte, err error) {
 	}
 	ilen := int(binary.LittleEndian.Uint32(msgLen))
 	frame = make([]byte, ilen)
-	n, err = stream.Read(frame)
-	if err != nil {
-		if n == ilen {
+
+	for start := 0; start < ilen; {
+		n, err = stream.Read(frame[start:])
+		start += n
+		if start == ilen {
 			return frame, nil
 		}
-		return nil, err
-	}
-	if n != ilen {
-		return nil, fmt.Errorf("recv invalid frame length")
+		if err != nil {
+			return
+		}
 	}
 	return
-}
-
-func SendMsg(stream quic.Stream, msg proto.Message) (err error) {
-	data, err := proto.Marshal(msg)
-	if err != nil {
-		return fmt.Errorf("mashal msg err: %v", err)
-	}
-	l.Debugf("SendMsg, len: %d", len(data))
-	return SendFrame(stream, data)
-}
-
-func SendFrame(stream quic.Stream, frame []byte) (err error) {
-	msgLen := make([]byte, 4)
-	binary.LittleEndian.PutUint32(msgLen, uint32(len(frame)))
-	if _, err = stream.Write(msgLen); err != nil {
-		return err
-	}
-	_, err = stream.Write(frame)
-	return err
 }
 
 type StreamHeader [1]byte

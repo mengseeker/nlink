@@ -14,7 +14,7 @@ type Logger struct {
 func NewLogger() *Logger {
 	l := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		// AddSource: true,
-		Level: slog.LevelDebug,
+		// Level: slog.LevelDebug,
 	}))
 	return &Logger{
 		Logger: *l,
