@@ -8,17 +8,22 @@ server:
 client:
   Listen: :7890
   Verbose: false
-  servers:
+  Net: tcp
+  Cert: .dev/tls/client/xingbiao_cert.pem
+  Key: .dev/tls/client/xingbiao_key.pem
+  Resolver:
+  - DNS: 114.114.114.114
+  - DoH: https://223.6.6.6/dns-query
+  - DoT: 223.6.6.6
+  - DoT: dns.pub
+  - DoH: https://doh.pub/dns-query
+  - DoT: 185.222.222.222
+  Servers:
   - Name: tokyo
-    # Net: tcp
     Addr: localhost:8899
-    Cert: .dev/tls/client/xingbiao_cert.pem
-    Key: .dev/tls/client/xingbiao_key.pem
   Rules:
-  - 'host-match: baidu.com, forward: tokyo'
-  # - 'host-match: baidu.com, direct'
-  - 'host-match: ad.com, reject'
-  - 'host-match: google.com, forward: tokyo'
+  - 'host-match: ad\.com, reject'
+  - 'host-match: \.cn, direct'
   - 'ip-cidr: 127.0.0.1/8, direct'
   - 'ip-cidr: 172.16.0.0/12, direct'
   - 'ip-cidr: 192.168.1.201/16, direct'

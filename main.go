@@ -57,3 +57,14 @@ func (a *App) startup(ctx context.Context) {
 func (a *App) Greet(name string) string {
 	return fmt.Sprintf("Hello %s, It's show time!", name)
 }
+
+func (a *App) Restart(configJson string) (err string) {
+	return "not impl"
+}
+
+func (a *App) Stop() {
+}
+
+func (a *App) Logs() []string {
+	return nil
+}

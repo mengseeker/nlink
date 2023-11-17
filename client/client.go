@@ -23,7 +23,9 @@ type ServerConfig struct {
 
 type ProxyConfig struct {
 	Listen  string
-	Verbose bool
+	Net     string
+	Cert    string
+	Key     string
 	Rules   []string
 	Servers []ServerConfig
 }
@@ -42,13 +44,23 @@ func NewProxy(cfg ProxyConfig) (p *Proxy, err error) {
 	p = &Proxy{
 		Config: &cfg,
 	}
+	for i := range p.Config.Servers {
+		if p.Config.Servers[i].Net == "" {
+			p.Config.Servers[i].Net = p.Config.Net
+		}
+		if p.Config.Servers[i].Cert == "" {
+			p.Config.Servers[i].Cert = p.Config.Cert
+		}
+		if p.Config.Servers[i].Key == "" {
+			p.Config.Servers[i].Key = p.Config.Key
+		}
+	}
 	p.provider = NewFunctionProvider(p.Config.Servers)
 	return
 }
 
 func (p *Proxy) Start(ctx context.Context) (err error) {
 	p.proxy = goproxy.NewProxyHttpServer()
-	p.proxy.Verbose = p.Config.Verbose
 	if err = p.applyRule(); err != nil {
 		return
 	}

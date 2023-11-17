@@ -12,10 +12,14 @@ type Logger struct {
 }
 
 func NewLogger() *Logger {
-	l := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	opt := slog.HandlerOptions{
 		// AddSource: true,
 		// Level: slog.LevelDebug,
-	}))
+	}
+	if os.Getenv("DEBUG") == "true" {
+		opt.Level = slog.LevelDebug
+	}
+	l := slog.New(slog.NewTextHandler(os.Stdout, &opt))
 	return &Logger{
 		Logger: *l,
 	}
