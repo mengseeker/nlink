@@ -7,7 +7,7 @@ server:
 
 client:
   Listen: :7890
-  Verbose: false
+  System: false
   Net: tcp
   Cert: .dev/tls/client/xingbiao_cert.pem
   Key: .dev/tls/client/xingbiao_key.pem
