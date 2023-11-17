@@ -9,33 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mengseeker/nlink/core/api"
+	"github.com/mengseeker/nlink/core/log"
+
 	"github.com/mengseeker/nlink/core/geoip"
 	"github.com/mengseeker/nlink/core/resolver"
 )
-
-type ProxyStream interface {
-	Context() context.Context
-	CloseSend() error
-}
-
-type Proxy_HTTPCallClient interface {
-	ProxyStream
-	Send(*api.HTTPRequest) error
-	Recv() (*api.HTTPResponse, error)
-}
-
-type Proxy_TCPCallClient interface {
-	ProxyStream
-	Send(*api.SockRequest) error
-	Recv() (*api.SockData, error)
-}
-
-type ForwardClient interface {
-	HTTPCall(ctx context.Context) (Proxy_HTTPCallClient, error)
-	TCPCall(ctx context.Context) (Proxy_TCPCallClient, error)
-	ServerName() string
-}
 
 type IP struct {
 	net.IP
@@ -43,28 +21,21 @@ type IP struct {
 }
 
 type FunctionProvider struct {
-	ServerConfigs  map[string]ServerConfig
-	Forwards       map[string]ForwardClient
-	ReadBufferSize int
-
+	log         *log.Logger
 	resolvers   []resolver.Resolver
 	domainCache map[string]*IP
 	dcLock      sync.Mutex
 }
 
-func NewFunctionProvider(ctx context.Context, sc []ServerConfig, rc []ResolverConfig) (pv *FunctionProvider, err error) {
+func NewFunctionProvider(ctx context.Context, rc []ResolverConfig, l *log.Logger) (pv *FunctionProvider, err error) {
 	pv = &FunctionProvider{
-		Forwards:      make(map[string]ForwardClient),
-		ServerConfigs: make(map[string]ServerConfig),
+		log:         l,
+		dcLock:      sync.Mutex{},
+		resolvers:   make([]resolver.Resolver, 0, len(rc)),
+		domainCache: make(map[string]*IP),
 	}
-	for i := range sc {
-		pv.ServerConfigs[sc[i].Name] = sc[i]
-	}
-	pv.ReadBufferSize = 4 << 10
-	pv.dcLock = sync.Mutex{}
 
 	// init resolvers
-	pv.resolvers = make([]resolver.Resolver, 0, len(rc))
 	for _, c := range rc {
 		if c.DNS != "" {
 			rcs, err := resolver.NewDNSResolver(c.DNS)
@@ -94,7 +65,6 @@ func NewFunctionProvider(ctx context.Context, sc []ServerConfig, rc []ResolverCo
 		return
 	}
 
-	pv.domainCache = make(map[string]*IP)
 	// load hosts
 	hosts, err := resolver.LoadHosts()
 	if err != nil {
@@ -135,27 +105,6 @@ func (pv *FunctionProvider) handleMaintenance(ctx context.Context) {
 	}
 }
 
-func (pv *FunctionProvider) dialProxyServer(ctx context.Context, name string) (err error) {
-	sc, exist := pv.ServerConfigs[name]
-	if !exist {
-		return fmt.Errorf("forward server %q not fround", name)
-	}
-	if sc.Net == "tcp" {
-		cli, err := DialGrpcServer(ctx, sc)
-		if err != nil {
-			return err
-		}
-		pv.Forwards[name] = cli
-	} else {
-		cli, err := DialQuicServer(ctx, sc)
-		if err != nil {
-			return err
-		}
-		pv.Forwards[name] = cli
-	}
-	return
-}
-
 func (pv *FunctionProvider) GEOIP(ip net.IP) string {
 	return geoip.Country(ip)
 }
@@ -189,7 +138,7 @@ func (pv *FunctionProvider) resolv(ctx context.Context, domain string) (IP net.I
 		defer wg.Done()
 		ip, err := rl.Resolv(tctx, domain)
 		if err != nil {
-			l.Debugf("lookup %s err: %v", domain, err)
+			pv.log.Debugf("lookup %s err: %v", domain, err)
 			return
 		}
 		records <- ip
@@ -209,34 +158,4 @@ func (pv *FunctionProvider) resolv(ctx context.Context, domain string) (IP net.I
 	case <-tctx.Done():
 		return nil
 	}
-}
-
-func (pv *FunctionProvider) getForwardProxyClient(ctx context.Context, name string) (cli ForwardClient, err error) {
-	cli, ok := pv.Forwards[name]
-	if !ok {
-		err = pv.dialProxyServer(ctx, name)
-		if err != nil {
-			return
-		}
-		cli = pv.Forwards[name]
-	}
-	return
-}
-
-func (pv *FunctionProvider) DialHTTP(ctx context.Context, name string) (stream Proxy_HTTPCallClient, err error) {
-	cli, err := pv.getForwardProxyClient(ctx, name)
-	if err != nil {
-		return
-	}
-	stream, err = cli.HTTPCall(ctx)
-	return
-}
-
-func (pv *FunctionProvider) DialTCP(ctx context.Context, name string) (stream Proxy_TCPCallClient, err error) {
-	cli, err := pv.getForwardProxyClient(ctx, name)
-	if err != nil {
-		return
-	}
-	stream, err = cli.TCPCall(ctx)
-	return
 }

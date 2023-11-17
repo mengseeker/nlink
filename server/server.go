@@ -2,30 +2,20 @@ package server
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/mengseeker/nlink/core/log"
 )
 
 type ServerConfig struct {
-	Addr           string
-	TLS_CA         string
-	TLS_Cert       string
-	TLS_Key        string
-	ReadBufferSize int
+	Addr     string
+	TLS_CA   string
+	TLS_Cert string
+	TLS_Key  string
 }
 
 func Start(c context.Context, cfg ServerConfig) {
 	l := log.NewLogger()
-	if cfg.ReadBufferSize <= 0 {
-		cfg.ReadBufferSize = 4 << 10
-	}
-	handler := Handler{
-		Log:            l,
-		ReadBufferSize: cfg.ReadBufferSize,
-		HTTPClient:     http.DefaultClient,
-	}
-	gs, err := NewGrpcServer(cfg, handler, l)
+	gs, err := NewTCPServer(cfg, l)
 	if err != nil {
 		panic(err)
 	}
@@ -35,7 +25,7 @@ func Start(c context.Context, cfg ServerConfig) {
 		}
 	}()
 
-	qs, err := NewQuicServer(cfg, handler, l)
+	qs, err := NewQuicServer(cfg, l)
 	if err != nil {
 		panic(err)
 	}

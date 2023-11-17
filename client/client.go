@@ -9,10 +9,6 @@ import (
 	"gopkg.in/elazarl/goproxy.v1"
 )
 
-var (
-	l = log.With("Uint", "client")
-)
-
 type ServerConfig struct {
 	Net  string
 	Name string
@@ -39,8 +35,10 @@ type ProxyConfig struct {
 type Proxy struct {
 	Config *ProxyConfig
 
+	log      *log.Logger
 	proxy    *goproxy.ProxyHttpServer
 	provider *FunctionProvider
+	forwards map[string]*ForwardClient
 }
 
 func NewProxy(cfg ProxyConfig) (p *Proxy, err error) {
@@ -48,7 +46,9 @@ func NewProxy(cfg ProxyConfig) (p *Proxy, err error) {
 		cfg.Listen = ":7890"
 	}
 	p = &Proxy{
-		Config: &cfg,
+		Config:   &cfg,
+		forwards: map[string]*ForwardClient{},
+		log:      log.NewLogger().With("unit", "client"),
 	}
 	for i := range p.Config.Servers {
 		if p.Config.Servers[i].Net == "" {
@@ -65,19 +65,31 @@ func NewProxy(cfg ProxyConfig) (p *Proxy, err error) {
 }
 
 func (p *Proxy) Start(ctx context.Context) (err error) {
-	p.provider, err = NewFunctionProvider(ctx, p.Config.Servers, p.Config.Resolver)
+	p.provider, err = NewFunctionProvider(ctx, p.Config.Resolver, p.log)
 	if err != nil {
 		return err
+	}
+	for _, sc := range p.Config.Servers {
+		forward, err := NewForwardClient(sc, p.log)
+		if err != nil {
+			return fmt.Errorf("new forwardclient %s err: %v", sc.Name, err)
+		}
+		p.forwards[sc.Name] = forward
 	}
 	p.proxy = goproxy.NewProxyHttpServer()
 	if err = p.applyRule(); err != nil {
 		return
 	}
-	l.Infof("proxy listen at: %s", p.Config.Listen)
+
+	p.log.Infof("proxy listen at: %s", p.Config.Listen)
 	return http.ListenAndServe(p.Config.Listen, p.proxy)
 }
 
 func (p *Proxy) applyRule() (err error) {
+	proxyHandler := ProxyHandler{
+		log: p.log,
+		fws: p.forwards,
+	}
 	for _, rStr := range p.Config.Rules {
 		r, err := UnmashalProxyRule(rStr)
 		if err != nil {
@@ -87,7 +99,7 @@ func (p *Proxy) applyRule() (err error) {
 		if err != nil {
 			return fmt.Errorf("invalid rule %q, err: %v", rStr, err)
 		}
-		rh, ch, err := r.BuildProxyAction(p.provider)
+		rh, ch, err := r.BuildProxyAction(&proxyHandler)
 		if err != nil {
 			return fmt.Errorf("invalid rule %q, err: %v", rStr, err)
 		}

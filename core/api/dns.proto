@@ -1,3 +1,0 @@
-syntax = "proto3";
-package api;
-option go_package = "github.com/mengseeker/nlink/core/api";

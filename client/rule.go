@@ -109,16 +109,21 @@ func newIPCIDRRCond(pv *FunctionProvider, cidr string) goproxy.ReqConditionFunc 
 	}
 }
 
-func (r ProxyRule) BuildProxyAction(pv *FunctionProvider) (reqHandle goproxy.FuncReqHandler, httpsHandle goproxy.FuncHttpsHandler, err error) {
+func (r ProxyRule) BuildProxyAction(h *ProxyHandler) (reqHandle goproxy.FuncReqHandler, httpsHandle goproxy.FuncHttpsHandler, err error) {
 	switch r.Action {
 	case RuleAction_Direct:
-		reqHandle = DirectReqHandle
-		httpsHandle = DirectHandleConnect
+		reqHandle = h.NewHTTPDirect()
+		httpsHandle = h.NewConnectDirect()
 	case RuleAction_Reject:
-		reqHandle = RejectReq
-		httpsHandle = RejectHandleConnect
+		reqHandle = h.NewHTTPReject()
+		httpsHandle = h.NewConnectReject()
 	case RuleAction_Forward:
-		reqHandle, httpsHandle = newForwardHTTPHandle(pv, r.ActionParam), newForwardHTTPSHandle(pv, r.ActionParam)
+		fc, exist := h.fws[r.ActionParam]
+		if !exist {
+			err = fmt.Errorf("forward server %q not fround", r.ActionParam)
+			return
+		}
+		reqHandle, httpsHandle = h.NewHTTPForward(fc), h.NewConnectForward(fc)
 	default:
 		err = fmt.Errorf("unsuport rule action: %q", r.Action)
 	}
