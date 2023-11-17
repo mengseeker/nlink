@@ -6,6 +6,7 @@ import (
 	"math"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mengseeker/nlink/core/api"
@@ -61,7 +62,7 @@ func NewFunctionProvider(ctx context.Context, sc []ServerConfig, rc []ResolverCo
 	pv.ReadBufferSize = 4 << 10
 
 	// init resolvers
-	pv.resolvers = make([]resolver.Resolver, len(rc))
+	pv.resolvers = make([]resolver.Resolver, 0, len(rc))
 	for _, c := range rc {
 		if c.DNS != "" {
 			rcs, err := resolver.NewDNSResolver(c.DNS)
@@ -157,15 +158,12 @@ func (pv *FunctionProvider) Resolv(ctx context.Context, domain string) net.IP {
 
 func (pv *FunctionProvider) resolv(ctx context.Context, domain string) (IP net.IP) {
 	records := make(chan net.IP)
-	defer func() {
-		for range records {
-		}
-		close(records)
-	}()
+	wg := sync.WaitGroup{}
 	tctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 	call := func(rl resolver.Resolver) {
 		defer recover()
+		defer wg.Done()
 		ip, err := rl.Resolv(tctx, domain)
 		if err != nil {
 			l.Debugf("lookup %s err: %v", domain, err)
@@ -173,12 +171,21 @@ func (pv *FunctionProvider) resolv(ctx context.Context, domain string) (IP net.I
 		}
 		records <- ip
 	}
-
-	for k := range pv.resolvers {
-		go call(pv.resolvers[k])
+	wg.Add(len(pv.resolvers))
+	go func() {
+		wg.Wait()
+		close(records)
+	}()
+	for i := range pv.resolvers {
+		go call(pv.resolvers[i])
 	}
 
-	return <-records
+	select {
+	case ip := <-records:
+		return ip
+	case <-tctx.Done():
+		return nil
+	}
 }
 
 func (pv *FunctionProvider) getForwardProxyClient(ctx context.Context, name string) (cli ForwardClient, err error) {

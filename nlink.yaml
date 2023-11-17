@@ -13,10 +13,8 @@ client:
   Key: .dev/tls/client/xingbiao_key.pem
   Resolver:
   - DNS: 114.114.114.114
-  - DoH: https://223.6.6.6/dns-query
   - DoT: 223.6.6.6
   - DoT: dns.pub
-  - DoH: https://doh.pub/dns-query
   - DoT: 185.222.222.222
   Servers:
   - Name: tokyo
