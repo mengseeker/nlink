@@ -22,10 +22,11 @@ client:
   - Name: tokyo
     Addr: localhost:8899
   Rules:
-  - 'host-match: ad\.com, reject'
-  - 'host-match: \.cn, direct'
+  - 'host-suffix: ad.com, reject'
+  - 'host-suffix: .cn, direct'
+  - 'host-match: cdn, direct'
   - 'ip-cidr: 127.0.0.1/8, direct'
   - 'ip-cidr: 172.16.0.0/12, direct'
   - 'ip-cidr: 192.168.1.201/16, direct'
   - 'geoip: CN, direct'
-  - 'match, forward: tokyo'
+  - 'match-all, forward: tokyo'

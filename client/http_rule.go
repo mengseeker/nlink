@@ -14,10 +14,13 @@ import (
 type RuleCond string
 
 const (
-	RuleCond_HostMatch RuleCond = "host-match"
-	RuleCond_GEOIP     RuleCond = "geoip"
-	RuleCond_IPCIDR    RuleCond = "ip-cidr"
-	RuleCond_MATCH     RuleCond = "match"
+	RuleCond_HostMatch  RuleCond = "host-match"
+	RuleCond_HostPrefix RuleCond = "host-prefix"
+	RuleCond_HostSuffix RuleCond = "host-suffix"
+	RuleCond_HostRegexp RuleCond = "host-regexp"
+	RuleCond_GEOIP      RuleCond = "geoip"
+	RuleCond_IPCIDR     RuleCond = "ip-cidr"
+	RuleCond_MatchAll   RuleCond = "match-all"
 )
 
 type RuleAction string
@@ -62,10 +65,26 @@ func UnmashalProxyRule(raw string) (r ProxyRule, err error) {
 
 func (r ProxyRule) BuildProxyConds(pv *FunctionProvider) (conds []goproxy.ReqCondition, err error) {
 	switch r.Cond {
-	case RuleCond_MATCH:
+	case RuleCond_MatchAll:
 		conds = append(conds, goproxy.ReqConditionFunc(func(req *http.Request, ctx *goproxy.ProxyCtx) bool { return true }))
+	case RuleCond_HostPrefix:
+		conds = append(conds, goproxy.ReqConditionFunc(func(req *http.Request, ctx *goproxy.ProxyCtx) bool {
+			return strings.HasPrefix(req.URL.Host, r.CondParam)
+		}))
+	case RuleCond_HostSuffix:
+		conds = append(conds, goproxy.ReqConditionFunc(func(req *http.Request, ctx *goproxy.ProxyCtx) bool {
+			return strings.HasSuffix(strings.SplitN(req.URL.Host, ":", 2)[0], r.CondParam)
+		}))
 	case RuleCond_HostMatch:
-		conds = append(conds, goproxy.ReqHostMatches(regexp.MustCompile(r.CondParam)))
+		conds = append(conds, goproxy.ReqConditionFunc(func(req *http.Request, ctx *goproxy.ProxyCtx) bool {
+			return strings.Contains(req.URL.Host, r.CondParam)
+		}))
+	case RuleCond_HostRegexp:
+		regexp, err := regexp.Compile(r.CondParam)
+		if err != nil {
+			return nil, err
+		}
+		conds = append(conds, goproxy.ReqHostMatches(regexp))
 	case RuleCond_GEOIP:
 		conds = append(conds, newGEOIPCond(pv, r.CondParam))
 	case RuleCond_IPCIDR:
@@ -78,14 +97,14 @@ func (r ProxyRule) BuildProxyConds(pv *FunctionProvider) (conds []goproxy.ReqCon
 
 func newGEOIPCond(pv *FunctionProvider, country string) goproxy.ReqConditionFunc {
 	return func(req *http.Request, ctx *goproxy.ProxyCtx) bool {
-		ip := pv.Resolver(req.URL.Host)
-		return pv.GEOIP(ip) == Country(country)
+		ip := pv.Resolv(ctx.Req.Context(), req.URL.Host)
+		return pv.GEOIP(ip) == country
 	}
 }
 
 func newIPCIDRRCond(pv *FunctionProvider, cidr string) goproxy.ReqConditionFunc {
 	return func(req *http.Request, ctx *goproxy.ProxyCtx) bool {
-		ip := pv.Resolver(req.URL.Host)
+		ip := pv.Resolv(ctx.Req.Context(), req.URL.Host)
 		return ipcidrMatch(cidr, ip)
 	}
 }
@@ -106,11 +125,10 @@ func (r ProxyRule) BuildProxyAction(pv *FunctionProvider) (reqHandle goproxy.Fun
 	return
 }
 
-func ipcidrMatch(cidr, ip string) bool {
+func ipcidrMatch(cidr string, ip net.IP) bool {
 	_, ipnet, err := net.ParseCIDR(cidr)
 	if err != nil {
 		return false
 	}
-	ipAddr := net.ParseIP(ip)
-	return ipnet.Contains(ipAddr)
+	return ipnet.Contains(ip)
 }

@@ -21,13 +21,19 @@ type ServerConfig struct {
 	Key  string
 }
 
+type ResolverConfig struct {
+	DNS string
+	DoT string
+}
+
 type ProxyConfig struct {
-	Listen  string
-	Net     string
-	Cert    string
-	Key     string
-	Rules   []string
-	Servers []ServerConfig
+	Listen   string
+	Net      string
+	Cert     string
+	Key      string
+	Rules    []string
+	Servers  []ServerConfig
+	Resolver []ResolverConfig
 }
 
 type Proxy struct {
@@ -55,11 +61,14 @@ func NewProxy(cfg ProxyConfig) (p *Proxy, err error) {
 			p.Config.Servers[i].Key = p.Config.Key
 		}
 	}
-	p.provider = NewFunctionProvider(p.Config.Servers)
 	return
 }
 
 func (p *Proxy) Start(ctx context.Context) (err error) {
+	p.provider, err = NewFunctionProvider(ctx, p.Config.Servers, p.Config.Resolver)
+	if err != nil {
+		return err
+	}
 	p.proxy = goproxy.NewProxyHttpServer()
 	if err = p.applyRule(); err != nil {
 		return
