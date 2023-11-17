@@ -8,17 +8,18 @@ server:
 client:
   Listen: :7890
   System: false
-  Net: tcp
+  Net: udp
   Cert: .dev/tls/client/xingbiao_cert.pem
   Key: .dev/tls/client/xingbiao_key.pem
   Resolver:
-  - DNS: 114.114.114.114
   - DoT: 223.6.6.6
   - DoT: dns.pub
   - DoT: 185.222.222.222
   Servers:
   - Name: tokyo
-    Addr: localhost:8899
+    Addr: p1.codenative.net:8899
+  - Name: hongkong
+    Addr: p3.codenative.net:8899
   Rules:
   - 'host-suffix: ad.com, reject'
   - 'host-suffix: .cn, direct'
@@ -27,4 +28,4 @@ client:
   - 'ip-cidr: 172.16.0.0/12, direct'
   - 'ip-cidr: 192.168.1.201/16, direct'
   - 'geoip: CN, direct'
-  - 'match-all, forward: tokyo'
+  - 'match-all, forward: hongkong'

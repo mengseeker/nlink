@@ -49,6 +49,7 @@ type FunctionProvider struct {
 
 	resolvers   []resolver.Resolver
 	domainCache map[string]*IP
+	dcLock      sync.Mutex
 }
 
 func NewFunctionProvider(ctx context.Context, sc []ServerConfig, rc []ResolverConfig) (pv *FunctionProvider, err error) {
@@ -60,6 +61,7 @@ func NewFunctionProvider(ctx context.Context, sc []ServerConfig, rc []ResolverCo
 		pv.ServerConfigs[sc[i].Name] = sc[i]
 	}
 	pv.ReadBufferSize = 4 << 10
+	pv.dcLock = sync.Mutex{}
 
 	// init resolvers
 	pv.resolvers = make([]resolver.Resolver, 0, len(rc))
@@ -111,7 +113,26 @@ func NewFunctionProvider(ctx context.Context, sc []ServerConfig, rc []ResolverCo
 }
 
 func (pv *FunctionProvider) handleMaintenance(ctx context.Context) {
-	// TODO
+	tk := time.NewTicker(time.Minute)
+	defer tk.Stop()
+	clean := func() {
+		pv.dcLock.Lock()
+		defer pv.dcLock.Unlock()
+		expireTime := time.Now().Add(-time.Minute * 10).Unix()
+		for k, v := range pv.domainCache {
+			if v.lastUsedTime < expireTime {
+				delete(pv.domainCache, k)
+			}
+		}
+	}
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-tk.C:
+			clean()
+		}
+	}
 }
 
 func (pv *FunctionProvider) dialProxyServer(ctx context.Context, name string) (err error) {
@@ -148,6 +169,8 @@ func (pv *FunctionProvider) Resolv(ctx context.Context, domain string) net.IP {
 		}
 		return ip.IP
 	}
+	pv.dcLock.Lock()
+	defer pv.dcLock.Unlock()
 	ip := pv.resolv(ctx, domain)
 	pv.domainCache[domain] = &IP{
 		IP:           ip,
