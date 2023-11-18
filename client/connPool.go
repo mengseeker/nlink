@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"io"
+	"math/rand"
 	"net"
 	"sync"
 	"time"
@@ -135,6 +136,7 @@ func (p *UDPConnectPool) Release() {
 
 func (p *UDPConnectPool) handleNewResource() {
 	defer p.wg.Done()
+	var lastErrTimes time.Duration
 	for {
 		select {
 		case <-p.done:
@@ -143,7 +145,8 @@ func (p *UDPConnectPool) handleNewResource() {
 			conn, err := p.dial()
 			if err != nil {
 				p.log.Errorf("dial udp server %s, err: %v", p.address, err)
-				time.Sleep(time.Second * 30)
+				lastErrTimes++
+				time.Sleep(time.Second * (min(lastErrTimes, 10)*30 + time.Duration(rand.Intn(30))))
 				continue
 			}
 			p.handleConn(conn)
