@@ -17,15 +17,15 @@
 </template>
 
 <script setup>
-import { emitFunc } from '../../../ipc/bus'
+import { Restart, Logs, Stop } from '../../../wailsjs/go/client/WailsApp'
 
 const restartNlink = () => {
-  emitFunc('restart_nlink', {})
+  Restart()
 }
 
-const closeNlink = () => {
-  emitFunc('close_nlink', {})
-}
+// const closeNlink = () => {
+//   emitFunc('close_nlink', {})
+// }
 
 </script>
 
