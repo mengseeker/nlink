@@ -3,6 +3,7 @@ module github.com/mengseeker/nlink
 go 1.21
 
 require (
+	github.com/elazarl/goproxy v0.0.0-20231031074852-3ec07828be7a
 	github.com/ncruces/go-dns v1.2.5
 	github.com/oschwald/geoip2-golang v1.9.0
 	github.com/quic-go/quic-go v0.40.0
@@ -17,7 +18,6 @@ require (
 
 require (
 	github.com/bep/debounce v1.2.1 // indirect
-	github.com/elazarl/goproxy v0.0.0-20231031074852-3ec07828be7a // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20231031074852-3ec07828be7a // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
