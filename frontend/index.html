@@ -7,30 +7,6 @@
     <title>nlink</title>
     <style>
     </style>
-    <script>
-      try {
-        var electron = require('electron')
-        console.log('electron', electron)
-      } catch (e) {
-        console.log(e)
-      }
-      if(!FileReader.prototype.readAsBinaryString) {
-        FileReader.prototype.readAsBinaryString = function (blob) {
-          var binary = '';
-          var self = this;
-          var reader = new FileReader();
-          reader.onload = function(e){
-            var bytes = new Uint8Array(reader.result);
-            var length = bytes.byteLength;
-            for (var i = 0; i < length; i++) {
-              binary += String.fromCharCode(bytes[i]);
-            }
-            self.result = binary; $(pt).trigger('onload');
-          };
-          reader.readAsArrayBuffer(blob);
-        }
-      }
-    </script>
   </head>
   <body>
     <div id="app"></div>
