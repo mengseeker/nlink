@@ -10,12 +10,17 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-
-  --bg-color: #edecf2;
+  /* --bg-color: #edecf2; */
+  --bg-color: #fff;
   --content-bg-color: #fff;
   --block-bg-color: #edecf2;
+  --select-bg-color: #edecf2;
   --font-color: #333;
   --active-color: #2887FF;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 html, body, #app {
