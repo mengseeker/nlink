@@ -26,6 +26,7 @@ type TCPConnectPool struct {
 	tlsConfig *tls.Config
 	done      chan any
 	log       *log.Logger
+	once      sync.Once
 }
 
 func NewTCPConnectPool(name, address, cert, key string, size int, l *log.Logger) (pl *TCPConnectPool, err error) {
@@ -40,12 +41,15 @@ func NewTCPConnectPool(name, address, cert, key string, size int, l *log.Logger)
 		tlsConfig: tc,
 		done:      make(chan any),
 		log:       l,
+		once:      sync.Once{},
 	}
-	go pl.handleNewResource()
 	return
 }
 
 func (p *TCPConnectPool) Get(ctx context.Context) (conn io.ReadWriteCloser, err error) {
+	p.once.Do(func() {
+		go p.handleNewResource()
+	})
 	select {
 	case <-ctx.Done():
 		return nil, errors.New("timeout to get conn")
@@ -93,6 +97,7 @@ type UDPConnectPool struct {
 	done      chan any
 	wg        sync.WaitGroup
 	log       *log.Logger
+	once      sync.Once
 }
 
 func NewUDPConnectPool(name, address, cert, key string, size int, l *log.Logger) (pl *UDPConnectPool, err error) {
@@ -108,15 +113,18 @@ func NewUDPConnectPool(name, address, cert, key string, size int, l *log.Logger)
 		done:      make(chan any),
 		wg:        sync.WaitGroup{},
 		log:       l,
-	}
-	pl.wg.Add(size)
-	for i := 0; i < size; i++ {
-		go pl.handleNewResource()
+		once:      sync.Once{},
 	}
 	return
 }
 
 func (p *UDPConnectPool) Get(ctx context.Context) (conn io.ReadWriteCloser, err error) {
+	p.once.Do(func() {
+		p.wg.Add(cap(p.container))
+		for i := 0; i < cap(p.container); i++ {
+			go p.handleNewResource()
+		}
+	})
 	select {
 	case <-ctx.Done():
 		return nil, errors.New("timeout to get conn")
