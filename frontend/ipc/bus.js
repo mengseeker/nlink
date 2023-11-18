@@ -1,9 +1,7 @@
+import { Greet } from '../wailsjs/go/main/App'
 
+export const emitFunc = async (name, args) => {
+  const res = await Greet(name, args)
 
-export const emitFunc =  (name, args) => {
-  if (window.electronAPI) {
-    window.electronAPI.emitFunc(name, args)
-  } else {
-    console.log('emitFunc', name, args)
-  }
+  return res
 }
