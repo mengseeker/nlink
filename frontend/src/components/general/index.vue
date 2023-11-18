@@ -17,14 +17,14 @@
 </template>
 
 <script setup>
-import { emitFunc } from '../../../ipc/bus'
+import { ipcEmit } from '../../../ipc/index'
 
 const restartNlink = () => {
-  emitFunc('restart_nlink', {})
+  ipcEmit('restart', {})
 }
 
 const closeNlink = () => {
-  emitFunc('close_nlink', {})
+  ipcEmit('close', {})
 }
 
 </script>

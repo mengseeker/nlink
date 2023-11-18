@@ -41,10 +41,10 @@ const emit = defineEmits(['update:modelValue'])
 const menu = [
   { value: 'general', label: '全局配置' },
   { value: 'proxies', label: '代理服务' },
-  { value: 'profiles', label: '订阅管理' },
+  { value: 'profiles', label: '配置管理' },
   { value: 'log', label: '日志管理' },
-  { value: 'connections', label: '连接管理' },
-  { value: 'settings', label: '设置' },
+  // { value: 'connections', label: '连接管理' },
+  { value: 'settings', label: '客户端设置' },
 ]
 
 const clickMenu = (item) => {
@@ -57,6 +57,7 @@ const clickMenu = (item) => {
 .nlink-ui-layout {
   width: 100%;
   height: 100%;
+  padding: 10px;
   display: flex;
   background-color: var(--bg-color);
   color: var(--font-color);
@@ -81,8 +82,11 @@ const clickMenu = (item) => {
 .nlink-ui-menu-item {
   padding: 10px 20px;
   cursor: pointer;
+  text-align: center;
+  border-radius: 5px;
+  margin-bottom: 4px;
 }
 .nlink-ui-menu-item.active {
-  background-color: #fff;
+  background-color: var(--select-bg-color);
 }
 </style>

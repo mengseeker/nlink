@@ -41,6 +41,7 @@
 import { ref } from 'vue'
 import { useProfilerStore } from '../../store/index.js'
 import { getDefaultProfile, requestRemoteProfile } from '../../utils/profile'
+import { ipcEmit } from '../../../ipc'
 
 import { Codemirror } from "vue-codemirror"
 import { javascript } from "@codemirror/lang-javascript"
