@@ -3,10 +3,8 @@ package client
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/mengseeker/nlink/core/log"
-	"gopkg.in/elazarl/goproxy.v1"
 )
 
 type ServerConfig struct {
@@ -35,10 +33,10 @@ type ProxyConfig struct {
 type Proxy struct {
 	Config *ProxyConfig
 
-	log      *log.Logger
-	proxy    *goproxy.ProxyHttpServer
-	provider *FunctionProvider
-	forwards map[string]*ForwardClient
+	ctx    context.Context
+	cancel context.CancelFunc
+	lis    *Listener
+	log    *log.Logger
 }
 
 func NewProxy(cfg ProxyConfig) (p *Proxy, err error) {
@@ -46,9 +44,8 @@ func NewProxy(cfg ProxyConfig) (p *Proxy, err error) {
 		cfg.Listen = ":7890"
 	}
 	p = &Proxy{
-		Config:   &cfg,
-		forwards: map[string]*ForwardClient{},
-		log:      log.NewLogger().With("unit", "client"),
+		Config: &cfg,
+		log:    log.NewLogger().With("unit", "client"),
 	}
 	for i := range p.Config.Servers {
 		if p.Config.Servers[i].Net == "" {
@@ -65,46 +62,44 @@ func NewProxy(cfg ProxyConfig) (p *Proxy, err error) {
 }
 
 func (p *Proxy) Start(ctx context.Context) (err error) {
-	p.provider, err = NewFunctionProvider(ctx, p.Config.Resolver, p.log)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	p.ctx = ctx
+	p.cancel = cancel
+	provider, err := NewFuncProvider(p.Config.Resolver, p.log)
 	if err != nil {
 		return err
 	}
+
+	forwards := map[string]*ForwardClient{}
 	for _, sc := range p.Config.Servers {
-		forward, err := NewForwardClient(sc, p.log)
+		forward, err := NewForwardClient(ctx, sc, p.log)
 		if err != nil {
 			return fmt.Errorf("new forwardclient %s err: %v", sc.Name, err)
 		}
-		p.forwards[sc.Name] = forward
-	}
-	p.proxy = goproxy.NewProxyHttpServer()
-	if err = p.applyRule(); err != nil {
-		return
+		forwards[sc.Name] = forward
 	}
 
-	p.log.Infof("proxy listen at: %s", p.Config.Listen)
-	return http.ListenAndServe(p.Config.Listen, p.proxy)
+	mapper, err := NewRuleMapper(ctx, p.Config.Rules, provider, forwards)
+	if err != nil {
+		return fmt.Errorf("parse rule err: %v", err)
+	}
+	httpHandler := NewHTTPHandler(mapper)
+	socks4Handler := NewSocks4Handler(mapper)
+	socks5Handler := NewSocks5Handler(mapper)
+
+	lis := &Listener{
+		Address:       p.Config.Listen,
+		Log:           p.log,
+		HTTPHandler:   httpHandler,
+		Socks4Handler: socks4Handler,
+		Socks5Handler: socks5Handler,
+	}
+	p.lis = lis
+	return p.lis.ListenAndServe(ctx)
 }
 
-func (p *Proxy) applyRule() (err error) {
-	proxyHandler := ProxyHandler{
-		log: p.log,
-		fws: p.forwards,
-	}
-	for _, rStr := range p.Config.Rules {
-		r, err := UnmashalProxyRule(rStr)
-		if err != nil {
-			return fmt.Errorf("unmashal rule err: %v", err)
-		}
-		conds, err := r.BuildProxyConds(p.provider)
-		if err != nil {
-			return fmt.Errorf("invalid rule %q, err: %v", rStr, err)
-		}
-		rh, ch, err := r.BuildProxyAction(&proxyHandler)
-		if err != nil {
-			return fmt.Errorf("invalid rule %q, err: %v", rStr, err)
-		}
-		p.proxy.OnRequest(conds...).DoFunc(rh)
-		p.proxy.OnRequest(conds...).HandleConnectFunc(ch)
-	}
-	return
+func (p *Proxy) Stop() (err error) {
+	p.cancel()
+	return nil
 }

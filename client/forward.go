@@ -22,12 +22,15 @@ type ForwardClient struct {
 	Log           *log.Logger
 	ForwardConfig ServerConfig
 	connPool      ConnPool
+	cancel        context.CancelFunc
 }
 
-func NewForwardClient(sc ServerConfig, l *log.Logger) (*ForwardClient, error) {
+func NewForwardClient(ctx context.Context, sc ServerConfig, l *log.Logger) (*ForwardClient, error) {
+	ctx, cancel := context.WithCancel(ctx)
 	c := ForwardClient{
 		Log:           l,
 		ForwardConfig: sc,
+		cancel:        cancel,
 	}
 	if sc.Net == "tcp" {
 		connPool, err := NewTCPConnectPool(sc.Name, sc.Addr, sc.Cert, sc.Key, ForwardConnPoolSize, l)
@@ -42,17 +45,21 @@ func NewForwardClient(sc ServerConfig, l *log.Logger) (*ForwardClient, error) {
 		}
 		c.connPool = connPool
 	}
+	go func() {
+		<-ctx.Done()
+		c.connPool.Release()
+	}()
 
 	return &c, nil
 }
 
-func (f *ForwardClient) ForwardHTTP(req *http.Request) (resp *http.Response) {
+func (f *ForwardClient) HTTPRequest(req *http.Request) (resp *http.Response) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	remoteConn, err := f.connPool.Get(ctx)
 	if err != nil {
 		f.Log.Errorf("unable to get remote conn, err: %v", err)
-		return
+		return NewErrHTTPResponse(req, err.Error())
 	}
 	remote := api.ForwardMeta{
 		Network: "tcp",
@@ -61,9 +68,10 @@ func (f *ForwardClient) ForwardHTTP(req *http.Request) (resp *http.Response) {
 	err = transform.SendMsg(remoteConn, &remote)
 	if err != nil {
 		f.Log.Errorf("send metadata err: %v", err)
-		return
+		return NewErrHTTPResponse(req, err.Error())
 	}
 	dialConn := remoteConn.(net.Conn)
+	// dialConn will auto close after call
 	hc := http.Client{
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -74,12 +82,12 @@ func (f *ForwardClient) ForwardHTTP(req *http.Request) (resp *http.Response) {
 	resp, err = hc.Do(req)
 	if err != nil && !errors.Is(err, io.EOF) {
 		f.Log.Errorf("request call err: %v", err)
-		return
+		return NewErrHTTPResponse(req, err.Error())
 	}
-	return nil
+	return resp
 }
 
-func (f *ForwardClient) ForwardConn(conn net.Conn, remote *api.ForwardMeta) {
+func (f *ForwardClient) Conn(conn net.Conn, remote *api.ForwardMeta) {
 	defer conn.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -106,4 +114,9 @@ func (f *ForwardClient) ForwardConn(conn net.Conn, remote *api.ForwardMeta) {
 	go copy(remoteConn, conn)
 	go copy(conn, remoteConn)
 	wg.Wait()
+}
+
+func (f *ForwardClient) Close() error {
+	f.cancel()
+	return nil
 }

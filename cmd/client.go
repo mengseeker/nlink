@@ -29,7 +29,7 @@ to quickly create a Cobra application.`,
 func runClient() {
 	var cfg client.ProxyConfig
 	cobra.CheckErr(viper.UnmarshalKey("client", &cfg))
-	s, err := client.NewProxy( cfg)
+	s, err := client.NewProxy(cfg)
 	cobra.CheckErr(err)
 	cobra.CheckErr(s.Start(context.TODO()))
 }

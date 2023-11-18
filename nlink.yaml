@@ -17,15 +17,15 @@ client:
   - DoT: 185.222.222.222
   Servers:
   - Name: tokyo
-    Addr: p1.codenative.net:8899
+    Addr: localhost:8899
   - Name: hongkong
-    Addr: p3.codenative.net:8899
+    Addr: localhost:8899
   Rules:
-  - 'host-suffix: ad.com, reject'
-  - 'host-suffix: .cn, direct'
-  - 'host-match: cdn, direct'
-  - 'ip-cidr: 127.0.0.1/8, direct'
-  - 'ip-cidr: 172.16.0.0/12, direct'
-  - 'ip-cidr: 192.168.1.201/16, direct'
-  - 'geoip: CN, direct'
+  # - 'host-suffix: ad.com, reject'
+  # - 'host-suffix: .cn, direct'
+  # - 'host-match: cdn, direct'
+  # - 'ip-cidr: 127.0.0.1/8, direct'
+  # - 'ip-cidr: 172.16.0.0/12, direct'
+  # - 'ip-cidr: 192.168.1.201/16, direct'
+  # - 'geoip: CN, direct'
   - 'match-all, forward: hongkong'
