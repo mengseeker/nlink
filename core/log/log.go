@@ -2,10 +2,13 @@ package log
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"golang.org/x/exp/slog"
 )
+
+var Out io.Writer = os.Stdout
 
 type Logger struct {
 	slog.Logger
@@ -19,7 +22,7 @@ func NewLogger() *Logger {
 	if os.Getenv("DEBUG") == "true" {
 		opt.Level = slog.LevelDebug
 	}
-	l := slog.New(slog.NewTextHandler(os.Stdout, &opt))
+	l := slog.New(slog.NewTextHandler(Out, &opt))
 	return &Logger{
 		Logger: *l,
 	}

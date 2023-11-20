@@ -39,7 +39,7 @@ type Proxy struct {
 	log    *log.Logger
 }
 
-func NewProxy(cfg ProxyConfig) (p *Proxy, err error) {
+func NewProxy(ctx context.Context, cfg ProxyConfig) (p *Proxy, err error) {
 	if cfg.Listen == "" {
 		cfg.Listen = ":7890"
 	}
@@ -58,31 +58,28 @@ func NewProxy(cfg ProxyConfig) (p *Proxy, err error) {
 			p.Config.Servers[i].Key = p.Config.Key
 		}
 	}
-	return
-}
 
-func (p *Proxy) Start(ctx context.Context) (err error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	p.ctx = ctx
 	p.cancel = cancel
 	provider, err := NewFuncProvider(p.Config.Resolver, p.log)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	forwards := map[string]*ForwardClient{}
 	for _, sc := range p.Config.Servers {
 		forward, err := NewForwardClient(ctx, sc, p.log)
 		if err != nil {
-			return fmt.Errorf("new forwardclient %s err: %v", sc.Name, err)
+			return nil, fmt.Errorf("new forwardclient %s err: %v", sc.Name, err)
 		}
 		forwards[sc.Name] = forward
 	}
 
 	mapper, err := NewRuleMapper(ctx, p.Config.Rules, provider, forwards)
 	if err != nil {
-		return fmt.Errorf("parse rule err: %v", err)
+		return nil, fmt.Errorf("parse rule err: %v", err)
 	}
 	httpHandler := NewHTTPHandler(mapper)
 	socks4Handler := NewSocks4Handler(mapper)
@@ -96,7 +93,12 @@ func (p *Proxy) Start(ctx context.Context) (err error) {
 		Socks5Handler: socks5Handler,
 	}
 	p.lis = lis
-	return p.lis.ListenAndServe(ctx)
+	return
+}
+
+func (p *Proxy) Start() (err error) {
+	p.log.Infof("proxy listen at: %s", p.Config.Listen)
+	return p.lis.ListenAndServe(p.ctx)
 }
 
 func (p *Proxy) Stop() (err error) {
