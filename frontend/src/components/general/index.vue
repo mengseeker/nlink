@@ -29,7 +29,10 @@
 
 <script setup>
 import { ipcEmit } from '../../../ipc/index'
+import { useProfilerStore } from '../../store/index.js'
 import { ref } from 'vue'
+
+const profiler = useProfilerStore()
 
 let url = ref('')
 
@@ -37,8 +40,9 @@ const reload = () => {
   window.location.href = url.value
 }
 
+// 重启服务
 const restartNlink = () => {
-  ipcEmit('restart', {})
+  ipcEmit('restart', profiler.currentProfile.content)
 }
 
 const closeNlink = () => {
