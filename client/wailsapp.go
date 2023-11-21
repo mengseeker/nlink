@@ -26,7 +26,7 @@ func (a *WailsApp) Startup(ctx context.Context) {
 	log.Out = iw
 	a.logScanner = bufio.NewScanner(a.logIO)
 	a.logs = make(chan string, 1000)
-	go a.HandleLogs()
+	go a.handleLogs()
 }
 
 func (a *WailsApp) Restart(configJson string) string {
@@ -70,7 +70,7 @@ LOOP:
 	return logs
 }
 
-func (a *WailsApp) HandleLogs() {
+func (a *WailsApp) handleLogs() {
 	go func() {
 		<-a.ctx.Done()
 		a.logIO.Close()
