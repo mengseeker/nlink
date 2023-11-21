@@ -39,3 +39,14 @@ button {
   cursor: pointer;
   border-radius: 4px;
 }
+
+input {
+  width: 90%;
+  padding: 6px 10px;
+  border: solid 1px var(--block-bg-color);
+  border-radius: 4px;
+  background-color: #fff;
+  font-size: 20px;
+  color: #999;
+  outline-style: none;
+}

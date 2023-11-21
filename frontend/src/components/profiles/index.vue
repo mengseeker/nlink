@@ -134,7 +134,7 @@ const changeCode = () => {
 .nlink-ui-link-input input {
   width: 90%;
   padding: 6px 10px;
-  border: solid 1px var(--bg-color);
+  border: solid 1px var(--block-bg-color);
   border-radius: 4px;
   background-color: #fff;
   font-size: 20px;

@@ -13,11 +13,29 @@
         <button @click="closeNlink">关闭服务</button>
       </div>
     </div>
+    <div class="nlink-ui-general-operate">
+      <div class="nlink-ui-general-operate-header">
+        开发
+      </div>
+      <div class="nlink-ui-general-operate-panel">
+        <div style="margin-bottom: 10px">
+          <input v-model="url">
+        </div>
+        <button @click="reload">加载自定义链接服务</button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ipcEmit } from '../../../ipc/index'
+import { ref } from 'vue'
+
+let url = ref('')
+
+const reload = () => {
+  window.location.href = url.value
+}
 
 const restartNlink = () => {
   ipcEmit('restart', {})
