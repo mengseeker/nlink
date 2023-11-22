@@ -79,6 +79,7 @@ func (f *ForwardClient) HTTPRequest(req *http.Request) (resp *http.Response) {
 			},
 		},
 	}
+	deleteRequestHeaders(req)
 	resp, err = hc.Do(req)
 	if err != nil && !errors.Is(err, io.EOF) {
 		f.Log.Errorf("request call err: %v", err)

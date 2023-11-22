@@ -60,7 +60,6 @@ func NewProxy(ctx context.Context, cfg ProxyConfig) (p *Proxy, err error) {
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
 	p.ctx = ctx
 	p.cancel = cancel
 	provider, err := NewFuncProvider(p.Config.Resolver, p.log)
