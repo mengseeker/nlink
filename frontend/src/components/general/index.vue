@@ -21,7 +21,7 @@
         <div style="margin-bottom: 10px">
           <input v-model="url">
         </div>
-        <button @click="reload">加载自定义链接服务</button>
+        <button @click="reload">加载自定义链接服务-测试</button>
       </div>
     </div>
   </div>

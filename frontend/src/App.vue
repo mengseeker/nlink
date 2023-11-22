@@ -7,6 +7,9 @@
     <template v-else-if="active === 'general'">
       <General />
     </template>
+    <template v-else-if="active === 'log'">
+      <Log />
+    </template>
   </Layout>
 </template>
 
@@ -14,6 +17,7 @@
 import Layout from './components/layout/index.vue'
 import Profiles from './components/profiles/index.vue'
 import General from './components/general/index.vue'
+import Log from './components/log/index.vue'
 
 import { ref } from 'vue'
 

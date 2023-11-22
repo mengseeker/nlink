@@ -21,7 +21,7 @@
 </template>
 
 <script setup>
-import { onUnmounted } from 'vue'
+import { onUnmounted, ref } from 'vue'
 import { ipcEmit } from '@ipc'
 
 let logs = ref([])
