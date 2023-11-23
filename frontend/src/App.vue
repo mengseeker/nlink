@@ -10,6 +10,9 @@
     <template v-else-if="active === 'log'">
       <Log />
     </template>
+    <template v-else-if="active === 'proxies'">
+      <Proxies />
+    </template>
   </Layout>
 </template>
 
@@ -18,6 +21,7 @@ import Layout from './components/layout/index.vue'
 import Profiles from './components/profiles/index.vue'
 import General from './components/general/index.vue'
 import Log from './components/log/index.vue'
+import Proxies from './components/proxies/index.vue'
 
 import { ref } from 'vue'
 

@@ -11,6 +11,11 @@ export const ipcEmit = async (name, args) => {
       res = await Logs(args)
       break
   }
+  if (!res || !res.Success) {
+    alert(res && res.Mes ? res.Mes : '出错了')
+    throw res
+  }
+
   console.log(name, res, 'ipcEmitReturn')
-  return res
+  return res.Result
 }

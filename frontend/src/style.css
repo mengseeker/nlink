@@ -50,3 +50,26 @@ input {
   color: #999;
   outline-style: none;
 }
+
+select {
+  color: var(--font-color);
+  width: 200px;
+  font-size: 20px;
+}
+
+
+/* 通用样式 */
+.nlink-ui-common-group {
+  margin-top: 20px;
+  padding: 20px;
+  border: solid 1px var(--block-bg-color);
+  border-radius: 5px;
+}
+.nlink-ui-common-group-header {
+  font-size: 18px;
+  padding-bottom: 10px;
+  border-bottom: solid 1px var(--block-bg-color);
+}
+.nlink-ui-common-group-panel {
+  padding: 20px 0;
+}
