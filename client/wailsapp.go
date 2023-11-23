@@ -58,6 +58,7 @@ func (a *WailsApp) Stop() {
 func (a *WailsApp) Logs() []string {
 	logs := make([]string, 0, 100)
 	var log string
+	logs = append(logs, <-a.logs)
 LOOP:
 	for i := 0; i < 1000; i++ {
 		select {
