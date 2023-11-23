@@ -28,7 +28,7 @@ type ForwardClient struct {
 func NewForwardClient(ctx context.Context, sc ServerConfig, l *log.Logger) (*ForwardClient, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	c := ForwardClient{
-		Log:           l,
+		Log:           l.With("server", sc.Name),
 		ForwardConfig: sc,
 		cancel:        cancel,
 	}
@@ -54,11 +54,13 @@ func NewForwardClient(ctx context.Context, sc ServerConfig, l *log.Logger) (*For
 }
 
 func (f *ForwardClient) HTTPRequest(req *http.Request) (resp *http.Response) {
+	l := f.Log.With("network", "tcp", "address", req.URL.Host)
+	l.Info("forward http")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	remoteConn, err := f.connPool.Get(ctx)
 	if err != nil {
-		f.Log.Errorf("unable to get remote conn, err: %v", err)
+		l.Errorf("unable to get remote conn, err: %v", err)
 		return NewErrHTTPResponse(req, err.Error())
 	}
 	remote := api.ForwardMeta{
@@ -67,7 +69,7 @@ func (f *ForwardClient) HTTPRequest(req *http.Request) (resp *http.Response) {
 	}
 	err = transform.SendMsg(remoteConn, &remote)
 	if err != nil {
-		f.Log.Errorf("send metadata err: %v", err)
+		l.Errorf("send metadata err: %v", err)
 		return NewErrHTTPResponse(req, err.Error())
 	}
 	dialConn := remoteConn.(net.Conn)
@@ -82,25 +84,27 @@ func (f *ForwardClient) HTTPRequest(req *http.Request) (resp *http.Response) {
 	deleteRequestHeaders(req)
 	resp, err = hc.Do(req)
 	if err != nil && !errors.Is(err, io.EOF) {
-		f.Log.Errorf("request call err: %v", err)
+		l.Errorf("request call err: %v", err)
 		return NewErrHTTPResponse(req, err.Error())
 	}
 	return resp
 }
 
 func (f *ForwardClient) Conn(conn net.Conn, remote *api.ForwardMeta) {
+	l := f.Log.With("network", remote.Network, "address", remote.Address)
+	l.Info("forward conn")
 	defer conn.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	remoteConn, err := f.connPool.Get(ctx)
 	if err != nil {
-		f.Log.Errorf("unable to get remote conn, err: %v", err)
+		l.Errorf("unable to get remote conn, err: %v", err)
 		return
 	}
 	defer remoteConn.Close()
 	err = transform.SendMsg(remoteConn, remote)
 	if err != nil {
-		f.Log.Errorf("send metadata err: %v", err)
+		l.Errorf("send metadata err: %v", err)
 		return
 	}
 	wg := sync.WaitGroup{}
@@ -108,7 +112,7 @@ func (f *ForwardClient) Conn(conn net.Conn, remote *api.ForwardMeta) {
 		defer wg.Done()
 		_, err := io.Copy(w, r)
 		if err != nil {
-			f.Log.Errorf("copy data err: %v", err)
+			l.Errorf("copy data err: %v", err)
 		}
 	}
 	wg.Add(2)
