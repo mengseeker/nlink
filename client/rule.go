@@ -19,31 +19,40 @@ import (
 	"github.com/mengseeker/nlink/core/api"
 )
 
-type RuleCond string
+type RuleCondType string
 
 const (
-	RuleCond_HostMatch  RuleCond = "host-match"
-	RuleCond_HostPrefix RuleCond = "host-prefix"
-	RuleCond_HostSuffix RuleCond = "host-suffix"
-	RuleCond_HostRegexp RuleCond = "host-regexp"
-	RuleCond_GEOIP      RuleCond = "geoip"
-	RuleCond_IPCIDR     RuleCond = "ip-cidr"
-	RuleCond_MatchAll   RuleCond = "match-all"
+	RuleCondType_HostMatch  RuleCondType = "host-match"
+	RuleCondType_HostPrefix RuleCondType = "host-prefix"
+	RuleCondType_HostSuffix RuleCondType = "host-suffix"
+	RuleCondType_HostRegexp RuleCondType = "host-regexp"
+	RuleCondType_GEOIP      RuleCondType = "geoip"
+	RuleCondType_IPCIDR     RuleCondType = "ip-cidr"
+	RuleCondType_HasServer  RuleCondType = "has-server"
+	RuleCondType_MatchAll   RuleCondType = "match-all"
 )
 
-type RuleAction string
+type RuleActionType string
 
 const (
-	RuleAction_Reject  RuleAction = "reject"
-	RuleAction_Direct  RuleAction = "direct"
-	RuleAction_Forward RuleAction = "forward"
+	RuleActionType_Reject  RuleActionType = "reject"
+	RuleActionType_Direct  RuleActionType = "direct"
+	RuleActionType_Forward RuleActionType = "forward"
 )
+
+type RuleCond struct {
+	Cond      RuleCondType
+	CondParam string
+}
+
+type RuleAction struct {
+	Action      RuleActionType
+	ActionParam string
+}
 
 type Rule struct {
-	Cond        RuleCond
-	CondParam   string
-	Action      RuleAction
-	ActionParam string
+	Conds []RuleCond
+	RuleAction
 }
 
 var (
@@ -56,15 +65,19 @@ func UnmashalProxyRule(raw string) (r Rule, err error) {
 		err = ErrInvalidSyntax
 		return
 	}
-	condStr := strings.SplitN(rs[0], ":", 2)
-	// fmt.Sprintln("condStr", condStr)
-	r.Cond = RuleCond(strings.TrimSpace(strings.ToLower(condStr[0])))
-	if len(condStr) > 1 {
-		r.CondParam = strings.TrimSpace(condStr[1])
+	conds := strings.Split(rs[0], "&&")
+	for _, v := range conds {
+		cond := RuleCond{}
+		condStr := strings.SplitN(v, ":", 2)
+		cond.Cond = RuleCondType(strings.TrimSpace(strings.ToLower(condStr[0])))
+		if len(condStr) > 1 {
+			cond.CondParam = strings.TrimSpace(condStr[1])
+		}
+		r.Conds = append(r.Conds, cond)
 	}
 
 	actionStr := strings.SplitN(rs[1], ":", 2)
-	r.Action = RuleAction(strings.TrimSpace(strings.ToLower(actionStr[0])))
+	r.Action = RuleActionType(strings.TrimSpace(strings.ToLower(actionStr[0])))
 	if len(actionStr) > 1 {
 		r.ActionParam = strings.TrimSpace(actionStr[1])
 	}
@@ -72,35 +85,37 @@ func UnmashalProxyRule(raw string) (r Rule, err error) {
 }
 
 func (r Rule) Check(forwards map[string]*ForwardClient) error {
-	switch r.Cond {
-	case RuleCond_HostMatch, RuleCond_HostPrefix, RuleCond_HostSuffix, RuleCond_GEOIP:
-		if r.CondParam == "" {
-			return fmt.Errorf("rule condition %q params must not empty", r.Cond)
+	for _, c := range r.Conds {
+		switch c.Cond {
+		case RuleCondType_HostMatch, RuleCondType_HostPrefix, RuleCondType_HostSuffix, RuleCondType_GEOIP, RuleCondType_HasServer:
+			if c.CondParam == "" {
+				return fmt.Errorf("rule condition %q params must not empty", c.Cond)
+			}
+		case RuleCondType_HostRegexp:
+			_, err := regexp.Compile(c.CondParam)
+			if err != nil {
+				return fmt.Errorf("rule condition %q params must a valid regexp, compile err: %v", c.Cond, err)
+			}
+		case RuleCondType_IPCIDR:
+			_, _, err := net.ParseCIDR(c.CondParam)
+			if err != nil {
+				return fmt.Errorf("rule condition %q params must a valid IPCIDR, parse err: %v", c.Cond, err)
+			}
+		case RuleCondType_MatchAll:
+		default:
+			return fmt.Errorf("unsupport rule condition %q", c.Cond)
 		}
-	case RuleCond_HostRegexp:
-		_, err := regexp.Compile(r.CondParam)
-		if err != nil {
-			return fmt.Errorf("rule condition %q params must a valid regexp, compile err: %v", r.Cond, err)
-		}
-	case RuleCond_IPCIDR:
-		_, _, err := net.ParseCIDR(r.CondParam)
-		if err != nil {
-			return fmt.Errorf("rule condition %q params must a valid IPCIDR, parse err: %v", r.Cond, err)
-		}
-	case RuleCond_MatchAll:
-	default:
-		return fmt.Errorf("unsupport rule condition %q", r.Cond)
 	}
 
 	switch r.Action {
-	case RuleAction_Direct:
-	case RuleAction_Reject:
-	case RuleAction_Forward:
+	case RuleActionType_Direct:
+	case RuleActionType_Reject:
+	case RuleActionType_Forward:
 		if r.ActionParam == "" || forwards[r.ActionParam] == nil {
 			return fmt.Errorf("rule action %s params must in forward servers", r.Action)
 		}
 	default:
-		return fmt.Errorf("unsupport rule action %q", r.Cond)
+		return fmt.Errorf("unsupport rule action %q", r.Action)
 	}
 	return nil
 }
@@ -162,48 +177,68 @@ func (rm *RuleMapper) Match(meta MatchMeta) RuleHandler {
 	return &DirectRuleHandler{log.NewLogger()}
 }
 
-func (r Rule) NewMatchFunc(pv *FuncProvider) func(mm MatchMeta) bool {
+func (r RuleCond) NewMatchFunc(pv *FuncProvider) func(mm MatchMeta) bool {
 	switch r.Cond {
-	case RuleCond_HostMatch:
+	case RuleCondType_HostMatch:
 		return func(mm MatchMeta) bool {
 			return strings.Contains(mm.Host, r.CondParam)
 		}
-	case RuleCond_HostPrefix:
+	case RuleCondType_HostPrefix:
 		return func(mm MatchMeta) bool {
 			return strings.HasPrefix(mm.Host, r.CondParam)
 		}
-	case RuleCond_HostSuffix:
+	case RuleCondType_HostSuffix:
 		return func(mm MatchMeta) bool {
 			return strings.HasSuffix(mm.Host, r.CondParam)
 		}
-	case RuleCond_HostRegexp:
+	case RuleCondType_HostRegexp:
 		reg := regexp.MustCompile(r.CondParam)
 		return func(mm MatchMeta) bool {
 			return reg.Match([]byte(mm.Host))
 		}
-	case RuleCond_GEOIP:
+	case RuleCondType_GEOIP:
 		return func(mm MatchMeta) bool {
 			return pv.GEOIP(pv.Resolv(mm.Host)) == string(r.CondParam)
 		}
-	case RuleCond_IPCIDR:
+	case RuleCondType_IPCIDR:
 		_, ipnet, _ := net.ParseCIDR(r.CondParam)
 		return func(mm MatchMeta) bool {
 			return ipnet.Contains(pv.Resolv(mm.Host))
 		}
-	case RuleCond_MatchAll:
+	case RuleCondType_HasServer:
+		ok := pv.HasServer(r.CondParam)
+		return func(mm MatchMeta) bool {
+			return ok
+		}
+	case RuleCondType_MatchAll:
 		return func(mm MatchMeta) bool { return true }
 	default:
 		return func(mm MatchMeta) bool { return false }
 	}
 }
 
+func (r Rule) NewMatchFunc(pv *FuncProvider) func(mm MatchMeta) bool {
+	funcs := []func(mm MatchMeta) bool{}
+	for _, c := range r.Conds {
+		funcs = append(funcs, c.NewMatchFunc(pv))
+	}
+	return func(mm MatchMeta) bool {
+		for _, c := range funcs {
+			if !c(mm) {
+				return false
+			}
+		}
+		return true
+	}
+}
+
 func (r Rule) NewRuleHandler(pv *FuncProvider, forwards map[string]*ForwardClient) RuleHandler {
 	switch r.Action {
-	case RuleAction_Reject:
+	case RuleActionType_Reject:
 		return &RejectRuleHandler{log: pv.log}
-	case RuleAction_Direct:
+	case RuleActionType_Direct:
 		return &DirectRuleHandler{log: pv.log}
-	case RuleAction_Forward:
+	case RuleActionType_Forward:
 		return forwards[r.ActionParam]
 	default:
 		return &RejectRuleHandler{log: pv.log}
@@ -245,7 +280,10 @@ func NewRuleMapper(
 		rls = append(rls, r)
 	}
 	if len(rls) == 0 {
-		rls = append(rls, Rule{Cond: RuleCond_MatchAll, Action: RuleAction_Direct})
+		rls = append(rls, Rule{
+			Conds:      []RuleCond{{Cond: RuleCondType_MatchAll}},
+			RuleAction: RuleAction{Action: RuleActionType_Direct},
+		})
 	}
 	for _, r := range rls {
 		mp.matchs = append(mp.matchs, r.NewMatchFunc(pv))

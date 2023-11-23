@@ -27,5 +27,6 @@ client:
   - 'ip-cidr: 127.0.0.1/8, direct'
   - 'ip-cidr: 172.16.0.0/12, direct'
   - 'ip-cidr: 192.168.1.201/16, direct'
+  - 'has-server: tokyo && geoip: JP, forward: tokyo'
   - 'geoip: CN, direct'
   - 'match-all, forward: hongkong'

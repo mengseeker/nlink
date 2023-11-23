@@ -17,12 +17,18 @@ type FuncProvider struct {
 	log       *log.Logger
 	resolvers []resolver.Resolver
 	hosts     map[string]net.IP
+	servers   map[string]bool
 }
 
-func NewFuncProvider(rc []ResolverConfig, l *log.Logger) (pv *FuncProvider, err error) {
+func NewFuncProvider(rc []ResolverConfig, servers []ServerConfig, l *log.Logger) (pv *FuncProvider, err error) {
 	pv = &FuncProvider{
 		log:       l,
 		resolvers: make([]resolver.Resolver, 0),
+		servers:   map[string]bool{},
+	}
+
+	for _, sc := range servers {
+		pv.servers[sc.Name] = true
 	}
 
 	// init resolvers
@@ -66,6 +72,10 @@ func NewFuncProvider(rc []ResolverConfig, l *log.Logger) (pv *FuncProvider, err 
 
 func (pv *FuncProvider) GEOIP(ip net.IP) string {
 	return geoip.Country(ip)
+}
+
+func (pv *FuncProvider) HasServer(name string) bool {
+	return pv.servers[name]
 }
 
 func (pv *FuncProvider) Resolv(domain string) (IP net.IP) {
