@@ -9,12 +9,15 @@
     <div>
       <div v-for="item in logs" :key="'log' + item.id">
         <div>
+          item
+        </div>
+        <!-- <div>
           <span>{{ item.date }}</span>
           <span>{{ item.type }}</span>
         </div>
         <div>
           {{ item.message }}
-        </div>
+        </div> -->
       </div>
     </div>
   </div>
@@ -33,14 +36,14 @@ const getLog = async () => {
   if (timer) clearTimeout(timer)
 
   const res = await ipcEmit('logs', { name: name.value })
-  if (!res) return
+  // if (!res) return
 
-  logs.value = res.data
+  logs.value = res
 
   // 自动调用
   timer = setTimeout(() => {
     getLog()
-  })
+  }, 1000)
 }
 
 // 销毁定时器
