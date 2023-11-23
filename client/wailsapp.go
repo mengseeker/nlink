@@ -79,7 +79,7 @@ func (a *WailsApp) handleLogs() {
 		select {
 		case a.logs <- a.logScanner.Text():
 		default:
-			fmt.Println("ignore log: ", a.logScanner.Text())
 		}
+		fmt.Println(a.logScanner.Text())
 	}
 }
