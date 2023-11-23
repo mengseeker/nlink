@@ -154,7 +154,10 @@ func (p *UDPConnectPool) handleNewResource() {
 			if err != nil {
 				p.log.Errorf("dial udp server %s, err: %v", p.address, err)
 				lastErrTimes++
-				time.Sleep(time.Second * (min(lastErrTimes, 10)*30 + time.Duration(rand.Intn(30))))
+				if lastErrTimes >= 10 {
+					lastErrTimes = 10
+				}
+				time.Sleep(time.Second * (lastErrTimes*30 + time.Duration(rand.Intn(30))))
 				continue
 			}
 			p.handleConn(conn)
