@@ -18,6 +18,12 @@ type WailsApp struct {
 	logs       chan string
 }
 
+type WailsResult struct {
+	Success bool
+	Msg     string
+	Result  any
+}
+
 func (a *WailsApp) Startup(ctx context.Context) {
 	a.ctx = ctx
 	// handle logs
@@ -29,17 +35,36 @@ func (a *WailsApp) Startup(ctx context.Context) {
 	go a.handleLogs()
 }
 
-func (a *WailsApp) Restart(configJson string) string {
+func (a *WailsApp) Restart(configJson string) WailsResult {
+	if err := a.restart(configJson); err != nil {
+		return WailsResult{
+			Success: false,
+			Msg:     err.Error(),
+		}
+	}
+	return WailsResult{Success: true}
+}
+
+func (a *WailsApp) Stop() WailsResult {
+	a.stop()
+	return WailsResult{Success: true}
+}
+
+func (a *WailsApp) Logs() WailsResult {
+	return WailsResult{Success: true, Result: a.getLogs()}
+}
+
+func (a *WailsApp) restart(configJson string) error {
 	if a.pxy != nil {
 		a.pxy.Stop()
 	}
 	var cfg ProxyConfig
 	if err := json.Unmarshal([]byte(configJson), &cfg); err != nil {
-		return fmt.Sprintf("invalid config, err: %s", err.Error())
+		return fmt.Errorf("invalid config, err: %s", err.Error())
 	}
 	pxy, err := NewProxy(a.ctx, cfg)
 	if err != nil {
-		return fmt.Sprintf("new proxy err: %s", err.Error())
+		return fmt.Errorf("new proxy err: %s", err.Error())
 	}
 	go func() {
 		if err = pxy.Start(); err != nil {
@@ -48,14 +73,14 @@ func (a *WailsApp) Restart(configJson string) string {
 		}
 	}()
 	a.pxy = pxy
-	return ""
+	return nil
 }
 
-func (a *WailsApp) Stop() {
+func (a *WailsApp) stop() {
 	a.pxy.Stop()
 }
 
-func (a *WailsApp) Logs() []string {
+func (a *WailsApp) getLogs() []string {
 	logs := make([]string, 0, 100)
 	var log string
 	logs = append(logs, <-a.logs)
