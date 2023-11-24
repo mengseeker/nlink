@@ -5,43 +5,40 @@ import dateUtils from './date'
 const defaultContent = {
   "Listen": ":7890",
   "System": false,
-  "Net": "tcp",
+  "Net": "udp",
   "Cert": ".dev/tls/client/xingbiao_cert.pem",
   "Key": ".dev/tls/client/xingbiao_key.pem",
   "Resolver": [
-      {
-          "DNS": "114.114.114.114"
-      },
-      {
-          "DoH": "https://223.6.6.6/dns-query"
-      },
-      {
-          "DoT": "223.6.6.6"
-      },
-      {
-          "DoT": "dns.pub"
-      },
-      {
-          "DoH": "https://doh.pub/dns-query"
-      },
-      {
-          "DoT": "185.222.222.222"
-      }
+    {
+      "DoT": "223.6.6.6"
+    },
+    {
+      "DoT": "dns.pub"
+    },
+    {
+      "DoT": "185.222.222.222"
+    }
   ],
   "Servers": [
-      {
-          "Name": "tokyo",
-          "Addr": "localhost:8899"
-      }
+    {
+      "Name": "tokyo",
+      "Addr": "localhost:8899"
+    },
+    {
+      "Name": "hongkong",
+      "Addr": "localhost:8899"
+    }
   ],
   "Rules": [
-      "host-match: ad\\.com, reject",
-      "host-match: \\.cn, direct",
-      "ip-cidr: 127.0.0.1/8, direct",
-      "ip-cidr: 172.16.0.0/12, direct",
-      "ip-cidr: 192.168.1.201/16, direct",
-      "geoip: CN, direct",
-      "match, forward: tokyo"
+    "host-suffix: ad.com, reject",
+    "host-suffix: .cn, direct",
+    "host-match: cdn, direct",
+    "ip-cidr: 127.0.0.1/8, direct",
+    "ip-cidr: 172.16.0.0/12, direct",
+    "ip-cidr: 192.168.1.201/16, direct",
+    "has-server: tokyo && geoip: JP, forward: tokyo",
+    "geoip: CN, direct",
+    "match-all, forward: hongkong"
   ]
 }
 export const getDefaultProfile = () => {

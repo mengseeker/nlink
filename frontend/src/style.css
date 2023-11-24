@@ -28,6 +28,11 @@ html, body, #app {
   height: 100%;
   margin: 0;
   background-color: var(--content-bg-color);
+  color: var(--font-color)
+}
+html body #app .nlink-ui-content *::selection {
+  background-color: var(--content-bg-color);
+  color: var(--active-color)
 }
 
 button {

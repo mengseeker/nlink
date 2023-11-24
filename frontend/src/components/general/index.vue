@@ -4,7 +4,7 @@
       <span>Nlink&nbsp;&nbsp;</span>
       <span style="font-size: 14px">v0.1.0</span>
     </div>
-    <div class="nlink-ui-general-operate nlink-ui-common-group">
+    <!-- <div class="nlink-ui-general-operate nlink-ui-common-group">
       <div class="nlink-ui-general-operate-header nlink-ui-common-group-header">
         操作
       </div>
@@ -12,36 +12,29 @@
         <button @click="restartNlink">重启服务</button>
         <button @click="closeNlink">关闭服务</button>
       </div>
-    </div>
+    </div> -->
     <div class="nlink-ui-general-operate">
       <div class="nlink-ui-general-operate-header">
         配置预览(修改内容后需要点击应用修改再进行重启)
       </div>
       <div class="nlink-ui-general-operate-panel">
-        <button @click="updateSettings">应用修改</button>
+        <n-button size="small" type="info" @click="updateSettings">应用修改</n-button>
         <div class="nlink-ui-general-settings-panel">
           使用端口:
-          <input v-model="client.Listen">
+          <n-input
+            v-model:value="client.Listen" size="small" placeholder="示例: :7899"
+            style="width: 200px;display: inline-block;" />
         </div>
         <div class="nlink-ui-general-settings-panel">
           系统代理:
-          <select v-model="client.System">
-            <option v-for="item in systemProxies"
-              :key="item"
-              :value="item">
-              {{ item }}
-            </option>
-          </select>
+          <n-switch v-model:value="client.System" />
         </div>
         <div class="nlink-ui-general-settings-panel">
           代理协议:
-          <select v-model="client.Net">
-            <option v-for="item in netTypes"
-              :key="item"
-              :value="item">
-              {{ item }}
-            </option>
-          </select>
+          <n-select
+            v-model:value="client.Net" size="small" 
+            :options="netTypes"
+            style="display: inline-block;width: 200px" />
         </div>
       </div>
     </div>
@@ -49,9 +42,12 @@
 </template>
 
 <script setup>
-import { ipcEmit } from '../../../ipc/index'
-import { useProfilerStore } from '../../store/index.js'
+import { ipcEmit } from '@ipc'
+import { startLogs } from '@utils/logs'
+import { useProfilerStore } from '@store'
+
 import { ref } from 'vue'
+import { NInput } from 'naive-ui'
 
 const profiler = useProfilerStore()
 
@@ -65,7 +61,9 @@ const reload = () => {
 const restartNlink = async () => {
   const res = await ipcEmit('restart', profiler.currentProfile.content)
 
-  alert('重启成功')
+  // 重启后开始记录日志
+  startLogs()
+  window.$message.success('重启成功')
 }
 
 const closeNlink = () => {
@@ -76,16 +74,17 @@ const closeNlink = () => {
 let client = ref({})
 if (profiler.currentProfile) {
   const profileContent = JSON.parse(profiler.currentProfile.content)
-  if (profileContent.client && profileContent.client.Listen) {
-    client.value = profileContent.client
+  if (profileContent && profileContent.Listen) {
+    client.value = profileContent
   }
 }
-const netTypes = ['udp', 'http', 'sock5']
-const systemProxies = [true, false]
+const netTypes = [
+  { value: 'udp', label: 'udp' },
+  { value: 'tcp', label: 'tcp' }]
 
 const updateSettings = () => {
   if (!profiler.currentProfile) {
-    alert('当前配置为空')
+    window.$message.warning('当前配置为空')
     return false
   }
 

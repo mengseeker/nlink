@@ -28,8 +28,8 @@ const profiler = useProfilerStore()
 let servers = ref([])
 if (profiler.currentProfile) {
   const profileContent = JSON.parse(profiler.currentProfile.content)
-  if (profileContent.client && profileContent.client.Servers) {
-    servers.value = profileContent.client.Servers
+  if (profileContent && profileContent.Servers) {
+    servers.value = profileContent.Servers
   }
 }
 
