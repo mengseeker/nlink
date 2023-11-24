@@ -100,7 +100,9 @@ func (l *Listener) handleHTTPServer() {
 }
 
 func (l *Listener) handleTCPConn(conn net.Conn) {
-	defer recover()
+	defer func() {
+		recover()
+	}()
 	conn.(*net.TCPConn).SetKeepAlive(true)
 
 	bufConn := NewPeekConn(conn)
