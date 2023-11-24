@@ -1,54 +1,85 @@
 <template>
   <div>
     <div>
-      <div>日志</div>
       <div>
-        <input v-model="name" @blur="getLog">
+        <!-- 搜索待做 -->
+        <n-input v-model:value="name" round placeholder="搜索">
+          <template #suffix>
+            <n-icon :component="FlashOutline" />
+          </template>
+        </n-input>
       </div>
     </div>
-    <div>
-      <div v-for="item in logs" :key="'log' + item.id">
-        <div>
-          item
-        </div>
-        <!-- <div>
-          <span>{{ item.date }}</span>
-          <span>{{ item.type }}</span>
-        </div>
-        <div>
-          {{ item.message }}
-        </div> -->
-      </div>
+    <div style="margin-top: 10px;padding: 10px;background-color: black;color: #367c71">
+      <n-log
+        ref="logInstRef"
+        :log="showLogs"
+        :loading="loading"
+        language="self-log"
+        trim
+        :line-height="1.5"
+        :font-size="16"
+        :rows="size"
+        :hljs="hljs"
+        @require-top="handlerequireTop"
+      />
+      <!-- <n-list v-else hoverable clickable>
+        <n-list-item v-for="item in logger.showLogs" :key="'log-' + item">
+          {{ item }}
+        </n-list-item>
+      </n-list> -->
     </div>
   </div>
 </template>
 
 <script setup>
-import { onUnmounted, ref } from 'vue'
-import { ipcEmit } from '@ipc'
+import { ref, computed, watch, watchEffect, onMounted, nextTick } from 'vue'
+// import { ipcEmit } from '@ipc'
+import { useLogStore } from '@store'
 
-let logs = ref([])
-let name = ref('')
+import { FlashOutline } from '@vicons/ionicons5'
+import hljs from 'highlight.js/lib/core'
 
-let timer = null
-const getLog = async () => {
-  // 清除定时器
-  if (timer) clearTimeout(timer)
+// import { LogInst } from 'naive-ui'
 
-  const res = await ipcEmit('logs', { name: name.value })
-  // if (!res) return
+const logger = useLogStore()
 
-  logs.value = res
+const loading = ref(false)
+const name = ref('')
+const index = ref(1)
+const size = ref(10)
+const logInstRef = ref(null)
 
-  // 自动调用
-  timer = setTimeout(() => {
-    getLog()
+const showLogs = computed(() => {
+  return logger.logs.slice(index.value * (-size)).join('\n')
+})
+
+const handlerequireTop = () => {
+  if (loading.value) return
+
+  loading.value = true
+  console.log('scroll1', index)
+  setTimeout(() => {
+  console.log('scroll2', index)
+    index.value = index.value + 1
+    loading.value = false
   }, 1000)
 }
+hljs.registerLanguage('self-log', () => ({
+  Keywords: [name.value]
+}))
 
-// 销毁定时器
-onUnmounted(() => {
-  clearTimeout(timer)
+watch(name, () => {
+})
+
+onMounted(() => {
+  watchEffect(() => {
+    if (showLogs.value) {
+      nextTick(() => {
+        logInstRef.value.scrollTo({ position: 'bottom', silent: true })
+      })
+    }
+  })
 })
 
 </script>

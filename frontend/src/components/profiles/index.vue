@@ -3,7 +3,12 @@
     <div class="nlink-ui-link-import">
       <!-- 链接引入 -->
       <div class="nlink-ui-link-input">
-        <input v-model="link" placeholder="填入订阅链接" >
+        <n-input
+          v-model:value="link" round placeholder="填入订阅链接">
+          <template #suffix>
+            <n-icon :component="FlashOutline" />
+          </template>
+        </n-input>
       </div>
       <div class="nlink-ui-link-operate">
         <button @click="tryImport">导入</button>
@@ -47,6 +52,8 @@ import { Codemirror } from "vue-codemirror"
 import { javascript } from "@codemirror/lang-javascript"
 import { oneDark } from "@codemirror/theme-one-dark"
 import { EditorView } from "@codemirror/view"
+import { FlashOutline } from '@vicons/ionicons5'
+import { NInput } from 'naive-ui'
 
 const profiler = useProfilerStore()
 
@@ -55,7 +62,7 @@ let link = ref(null)
 // 导入
 const tryImport = async () => {
   console.log('tryImport')
-  if (!link) alert('请填写链接')
+  if (!link)  window.$message.warning('请填写链接')
 
   const profile = requestRemoteProfile(link)
   profiler.pushProfile(profile)

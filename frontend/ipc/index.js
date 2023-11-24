@@ -11,11 +11,16 @@ export const ipcEmit = async (name, args) => {
       res = await Logs(args)
       break
   }
+  console.log(name, res, 'ipcEmitReturn')
   if (!res || !res.Success) {
-    alert(res && res.Mes ? res.Mes : '出错了')
-    throw res
+    window.$message.error(
+      res && res.Msg ? res.Msg : '出错了'
+    )
+    throw {
+      name: 'IpcError',
+      message: res.Msg
+    }
   }
 
-  console.log(name, res, 'ipcEmitReturn')
   return res.Result
 }

@@ -2,9 +2,21 @@
   <div class="nlink-ui-layout">
     <div class="nlink-ui-left-panel">
       <div class="left-header-panel">
-        <!-- 显示网速 -->
-        <div>上传速率：{{ uploadSpeed }} k/s</div>
-        <div>下载速率：{{ downloadSpeed }} k/s</div>
+        <!-- <div>上传速率：{{ uploadSpeed }} k/s</div>
+        <div>下载速率：{{ downloadSpeed }} k/s</div> -->
+        <div style="font-size: 20px;margin-bottom: 10px;">
+          Nlink
+        </div>
+        <div style="margin-bottom: 10px;">
+          <n-button size="tiny" type="info"
+            style="margin-right: 5px;"
+            @click="restartNlink" >
+            重启服务
+          </n-button>
+          <n-button size="tiny" type="info" @click="closeNlink">
+            关闭服务
+          </n-button>
+        </div>
       </div>
       <div class="nlink-ui-menu">
         <div
@@ -23,7 +35,15 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue'
+import { ipcEmit } from '@ipc'
+import { startLogs } from '@utils/logs'
+import { useProfilerStore } from '@store'
+
+import { defineProps, defineEmits, onMounted } from 'vue'
+
+import { NConfigProvider, useMessage } from 'naive-ui'
+
+const profiler = useProfilerStore()
 
 defineProps({
   modelValue: [String, Number],
@@ -51,6 +71,23 @@ const clickMenu = (item) => {
   emit('update:modelValue', item.value)
 }
 
+// 重启服务
+const restartNlink = async () => {
+  await ipcEmit('restart', profiler.currentProfile.content)
+
+  // 重启后开始记录日志
+  startLogs()
+  window.$message.success('重启成功')
+}
+// 关闭服务
+const closeNlink = () => {
+  ipcEmit('close', {})
+}
+
+onMounted(() => {
+  window.$message = useMessage()
+})
+
 </script>
 
 <style scoped>
@@ -70,12 +107,14 @@ const clickMenu = (item) => {
   flex: 1;
   height: 100%;
   overflow: auto;
+  padding: 10px;
   background-color: var(--content-bg-color);
 }
 
 .nlink-ui-left-panel .left-header-panel {
   padding: 10px;
   border-bottom: solid 2px #fff;
+  text-align: center;
 }
 
 .nlink-ui-menu {}
