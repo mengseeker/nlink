@@ -71,7 +71,7 @@ func (a *WailsApp) restart(configJson string) error {
 	}
 	go func() {
 		if err = pxy.Start(); err != nil {
-			a.logs <- err.Error()
+			a.log.Errorf("start proxy err: %s", err.Error())
 			return
 		}
 	}()
