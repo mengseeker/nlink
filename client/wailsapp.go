@@ -38,7 +38,6 @@ func (a *WailsApp) Startup(ctx context.Context) {
 }
 
 func (a *WailsApp) Restart(configJson string) WailsResult {
-	a.logs <- fmt.Sprintf("restart config: %s", configJson)
 	if err := a.restart(configJson); err != nil {
 		return WailsResult{
 			Success: false,
