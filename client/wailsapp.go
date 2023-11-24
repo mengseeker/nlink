@@ -13,6 +13,7 @@ import (
 type WailsApp struct {
 	ctx        context.Context
 	pxy        *Proxy
+	log        *log.Logger
 	logIO      io.ReadCloser
 	logScanner *bufio.Scanner
 	logs       chan string
@@ -28,6 +29,7 @@ func (a *WailsApp) Startup(ctx context.Context) {
 	a.ctx = ctx
 	// handle logs
 	ir, iw := io.Pipe()
+	a.log = log.NewLogger()
 	a.logIO = ir
 	log.Out = iw
 	a.logScanner = bufio.NewScanner(a.logIO)
@@ -36,6 +38,7 @@ func (a *WailsApp) Startup(ctx context.Context) {
 }
 
 func (a *WailsApp) Restart(configJson string) WailsResult {
+	a.logs <- fmt.Sprintf("restart config: %s", configJson)
 	if err := a.restart(configJson); err != nil {
 		return WailsResult{
 			Success: false,
