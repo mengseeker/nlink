@@ -36,6 +36,12 @@
             :options="netTypes"
             style="display: inline-block;width: 200px" />
         </div>
+        <div class="nlink-ui-general-settings-panel">
+          <n-button @click="selectCertFile">选择cert文件(pem后缀)</n-button>
+        </div>
+        <div class="nlink-ui-general-settings-panel">
+          <n-button @click="selectKeyFile">选择key文件(pem后缀)</n-button>
+        </div>
       </div>
     </div>
   </div>
@@ -88,11 +94,30 @@ const updateSettings = () => {
     return false
   }
 
-  const profileContent = JSON.parse(profiler.currentProfile.content)
-  profileContent.client = client.value
+  let profileContent = JSON.parse(profiler.currentProfile.content)
+  profileContent = {
+    ...profileContent,
+    ...client.value
+  }
   // TODO: 后续封装放utils里
   profiler.updateCurrentProfile(JSON.stringify(profileContent, null, 2))
 }
+
+const selectFile = async (type = 'cert') => {
+  const res = await ipcEmit('select_file')
+  let profileContent = JSON.parse(profiler.currentProfile.content)
+  switch (type) {
+    case 'cert':
+      profileContent.Cert = res
+      break
+    case 'key':
+      profileContent.Key = res
+      break
+  }
+  // TODO: 后续封装放utils里
+  profiler.updateCurrentProfile(JSON.stringify(profileContent, null, 2))
+}
+
 
 </script>
 
