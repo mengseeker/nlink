@@ -1,4 +1,4 @@
-package client
+package wails
 
 import (
 	"bufio"
@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/mengseeker/nlink/client"
 	"github.com/mengseeker/nlink/core/log"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type WailsApp struct {
 	ctx        context.Context
-	pxy        *Proxy
+	pxy        *client.Proxy
 	log        *log.Logger
 	logIO      io.ReadCloser
 	logScanner *bufio.Scanner
@@ -56,15 +58,37 @@ func (a *WailsApp) Logs() WailsResult {
 	return WailsResult{Success: true, Result: a.getLogs()}
 }
 
+func (a *WailsApp) OpenDirectoryDialog(title string) WailsResult {
+	res, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		ShowHiddenFiles: true,
+		Title:           title,
+	})
+	if err != nil {
+		return WailsResult{Success: false, Msg: err.Error()}
+	}
+	return WailsResult{Success: true, Result: res}
+}
+
+func (a *WailsApp) OpenFileDialog(title string) WailsResult {
+	res, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		ShowHiddenFiles: true,
+		Title:           title,
+	})
+	if err != nil {
+		return WailsResult{Success: false, Msg: err.Error()}
+	}
+	return WailsResult{Success: true, Result: res}
+}
+
 func (a *WailsApp) restart(configJson string) error {
 	if a.pxy != nil {
 		a.pxy.Stop()
 	}
-	var cfg ProxyConfig
+	var cfg client.ProxyConfig
 	if err := json.Unmarshal([]byte(configJson), &cfg); err != nil {
 		return fmt.Errorf("invalid config, err: %s", err.Error())
 	}
-	pxy, err := NewProxy(a.ctx, cfg)
+	pxy, err := client.NewProxy(a.ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("new proxy err: %s", err.Error())
 	}
