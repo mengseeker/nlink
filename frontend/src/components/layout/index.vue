@@ -7,6 +7,11 @@
         <div style="font-size: 20px;margin-bottom: 10px;">
           Nlink
         </div>
+        <div style="font-size: 16px;margin-bottom: 10px;">
+          <n-text :type="running ? 'success' : 'error'">
+            {{ running ? '运行中' : '未运行' }}
+          </n-text>
+        </div>
         <div style="margin-bottom: 10px;">
           <n-button size="tiny" type="info"
             style="margin-right: 5px;"
@@ -39,9 +44,9 @@ import { ipcEmit } from '@ipc'
 import { startLogs } from '@utils/logs'
 import { useProfilerStore } from '@store'
 
-import { defineProps, defineEmits, onMounted } from 'vue'
+import { defineProps, defineEmits, onMounted, ref } from 'vue'
 
-import { NConfigProvider, useMessage } from 'naive-ui'
+import { useMessage } from 'naive-ui'
 
 const profiler = useProfilerStore()
 
@@ -71,17 +76,21 @@ const clickMenu = (item) => {
   emit('update:modelValue', item.value)
 }
 
+const running = ref(false)
 // 重启服务
 const restartNlink = async () => {
   await ipcEmit('restart', profiler.currentProfile.content)
 
+  running.value = true
   // 重启后开始记录日志
   startLogs()
   window.$message.success('重启成功')
 }
 // 关闭服务
-const closeNlink = () => {
-  ipcEmit('close', {})
+const closeNlink = async () => {
+  await ipcEmit('stop', {})
+  running.value = false
+  window.$message.success('关闭成功')
 }
 
 onMounted(() => {

@@ -37,10 +37,14 @@
             style="display: inline-block;width: 200px" />
         </div>
         <div class="nlink-ui-general-settings-panel">
-          <n-button @click="selectCertFile">选择cert文件(pem后缀)</n-button>
+          cert文件: <n-button @click="selectFile('cert')">选择(pem后缀)</n-button>
+          &nbsp;&nbsp;
+          <span>当前路径：{{ client.Cert }}</span>
         </div>
         <div class="nlink-ui-general-settings-panel">
-          <n-button @click="selectKeyFile">选择key文件(pem后缀)</n-button>
+          key 文件: <n-button @click="selectFile('key')">选择(pem后缀)</n-button>
+          &nbsp;&nbsp;
+          <span>当前路径：{{ client.Key }}</span>
         </div>
       </div>
     </div>
@@ -105,17 +109,17 @@ const updateSettings = () => {
 
 const selectFile = async (type = 'cert') => {
   const res = await ipcEmit('select_file')
-  let profileContent = JSON.parse(profiler.currentProfile.content)
+  if (!res || res === '') return false
+
   switch (type) {
     case 'cert':
-      profileContent.Cert = res
+      client.value.Cert = res
       break
     case 'key':
-      profileContent.Key = res
+      client.value.Key = res
       break
   }
-  // TODO: 后续封装放utils里
-  profiler.updateCurrentProfile(JSON.stringify(profileContent, null, 2))
+  window.$message.success('已修改文件，请点击应用修改')
 }
 
 

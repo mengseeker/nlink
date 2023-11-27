@@ -1,6 +1,6 @@
 
 <template>
-  <n-config-provider :locale="zhCN" :date-locale="dateZhCN" style="height: 100%;">
+  <n-config-provider :locale="zhCN" :date-locale="dateZhCN" :theme="theme" style="height: 100%;">
 
     <n-message-provider style="height: 100%;">
       <Layout v-model="active">
@@ -30,6 +30,7 @@ import Proxies from './components/proxies/index.vue'
 
 import { NConfigProvider, useMessage } from 'naive-ui'
 import { zhCN, dateZhCN } from 'naive-ui'
+// import { darkTheme } from 'naive-ui'
 // import hljs from 'highlight.js/lib/core'
 // import shell from 'highlight.js/lib/languages/plaintext'
 
@@ -38,6 +39,9 @@ import { ref, onMounted } from 'vue'
 let active = ref('general')
 
 // hljs.registerLanguage('shell', shell);
+
+// const theme = darkTheme
+const theme = null
 
 </script>
 

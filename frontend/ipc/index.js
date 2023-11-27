@@ -1,4 +1,4 @@
-import { Restart, Logs, OpenFileDialog } from "../wailsjs/go/client/WailsApp"
+import { Restart, Logs, OpenFileDialog, Stop } from "../wailsjs/go/wails/WailsApp"
 
 export const ipcEmit = async (name, args) => {
   console.log('ipcEmit', name, args)
@@ -12,6 +12,9 @@ export const ipcEmit = async (name, args) => {
       break
     case 'select_file':
       res = await OpenFileDialog(args)
+      break
+    case 'stop':
+      res = await Stop(args)
       break
   }
   console.log(name, res, 'ipcEmitReturn')
