@@ -12,6 +12,7 @@ import (
 	"github.com/mengseeker/nlink/core/api"
 	"github.com/mengseeker/nlink/core/log"
 	"github.com/mengseeker/nlink/core/transform"
+	"github.com/quic-go/quic-go"
 )
 
 const (
@@ -113,6 +114,11 @@ func (f *ForwardClient) Conn(conn net.Conn, remote *api.ForwardMeta) {
 		_, err := io.Copy(w, r)
 		if err != nil {
 			l.Errorf("copy data err: %v", err)
+		}
+		if c, ok := w.(*net.TCPConn); ok {
+			c.CloseWrite()
+		} else if c, ok := w.(quic.Stream); ok {
+			c.Close()
 		}
 	}
 	wg.Add(2)
