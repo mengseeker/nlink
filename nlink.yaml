@@ -20,6 +20,12 @@ client:
     Addr: p1.codenative.net:8899
   - Name: hongkong
     Addr: p3.codenative.net:8899
+  - Name: local_udp
+    Addr: localhost:8899
+    Net: udp
+  - Name: local_tcp
+    Addr: localhost:8899
+    Net: tcp
   Rules:
   # - 'host-suffix: ad.com, reject'
   # - 'host-suffix: .cn, direct'
@@ -30,4 +36,4 @@ client:
   # - 'ip-cidr: 192.168.1.201/16, direct'
   # - 'has-server: tokyo && geoip: JP, forward: tokyo'
   # - 'geoip: CN, direct'
-  - 'match-all, forward: hongkong'
+  - 'match-all, forward: local_udp'

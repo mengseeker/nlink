@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mengseeker/nlink/core/log"
+	"github.com/mengseeker/nlink/core/transform"
 	"github.com/quic-go/quic-go"
 )
 
@@ -22,7 +23,7 @@ func NewQuicServer(cfg ServerConfig, log *log.Logger) (*QuicServer, error) {
 	}
 	s := QuicServer{
 		Config: &cfg,
-		Log:    log.With("serverType", "udp"),
+		Log:    log.With("server.type", "udp"),
 	}
 	return &s, nil
 }
@@ -64,6 +65,6 @@ func (s *QuicServer) handleClient(c context.Context, conn quic.Connection) {
 			s.Log.Errorf("AcceptStream err: %v", err)
 			return
 		}
-		go handler.HandleConnect(stream)
+		go handler.HandleConnect(transform.QUICConn{Conn: conn, Stream: stream})
 	}
 }

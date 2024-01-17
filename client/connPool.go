@@ -4,18 +4,18 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"io"
 	"math/rand"
 	"net"
 	"sync"
 	"time"
 
 	"github.com/mengseeker/nlink/core/log"
+	"github.com/mengseeker/nlink/core/transform"
 	"github.com/quic-go/quic-go"
 )
 
 type ConnPool interface {
-	Get(ctx context.Context) (conn io.ReadWriteCloser, err error)
+	Get(ctx context.Context) (conn net.Conn, err error)
 	Release()
 }
 
@@ -46,7 +46,7 @@ func NewTCPConnectPool(name, address, cert, key string, size int, l *log.Logger)
 	return
 }
 
-func (p *TCPConnectPool) Get(ctx context.Context) (conn io.ReadWriteCloser, err error) {
+func (p *TCPConnectPool) Get(ctx context.Context) (conn net.Conn, err error) {
 	p.once.Do(func() {
 		go p.handleNewResource()
 	})
@@ -84,14 +84,9 @@ func (p *TCPConnectPool) handleNewResource() {
 	}
 }
 
-type QUICConn struct {
-	quic.Stream
-	quic.Connection
-}
-
 type UDPConnectPool struct {
 	Name      string
-	container chan *QUICConn
+	container chan transform.QUICConn
 	address   string
 	tlsConfig *tls.Config
 	done      chan any
@@ -107,7 +102,7 @@ func NewUDPConnectPool(name, address, cert, key string, size int, l *log.Logger)
 	}
 	pl = &UDPConnectPool{
 		Name:      name,
-		container: make(chan *QUICConn, size),
+		container: make(chan transform.QUICConn, size),
 		address:   address,
 		tlsConfig: tc,
 		done:      make(chan any),
@@ -118,7 +113,7 @@ func NewUDPConnectPool(name, address, cert, key string, size int, l *log.Logger)
 	return
 }
 
-func (p *UDPConnectPool) Get(ctx context.Context) (conn io.ReadWriteCloser, err error) {
+func (p *UDPConnectPool) Get(ctx context.Context) (conn net.Conn, err error) {
 	p.once.Do(func() {
 		p.wg.Add(cap(p.container))
 		for i := 0; i < cap(p.container); i++ {
@@ -185,7 +180,7 @@ func (p *UDPConnectPool) handleConn(conn quic.Connection) {
 				p.log.Errorf("open udp stream err: %v", err)
 				return
 			}
-			p.container <- &QUICConn{Stream: stream, Connection: conn}
+			p.container <- transform.QUICConn{Stream: stream, Conn: conn}
 		}
 
 	}

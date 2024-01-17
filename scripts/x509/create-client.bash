@@ -6,7 +6,7 @@ CA_DIR=.dev/tls
 OUTPUT_DIR=${CA_DIR}/client
 CURRENT_DIR=$(cd `dirname $0`; pwd)
 config_file=${CURRENT_DIR}/openssl.cnf
-clientname=xingbiao
+clientname=ron
 
 mkdir -p ${OUTPUT_DIR}
 openssl genrsa -out ${OUTPUT_DIR}/${clientname}_key.pem 4096

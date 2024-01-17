@@ -11,6 +11,7 @@ import (
 	"github.com/mengseeker/nlink/core/log"
 	"github.com/mengseeker/nlink/core/socks/transport/socks4"
 	"github.com/mengseeker/nlink/core/socks/transport/socks5"
+	"github.com/mengseeker/nlink/core/transform"
 )
 
 type Listener struct {
@@ -105,7 +106,7 @@ func (l *Listener) handleTCPConn(conn net.Conn) {
 	}()
 	conn.(*net.TCPConn).SetKeepAlive(true)
 
-	bufConn := NewPeekConn(conn)
+	bufConn := transform.NewPeekConn(conn)
 	head, err := bufConn.Peek(1)
 	if err != nil {
 		return

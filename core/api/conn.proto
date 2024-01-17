@@ -5,4 +5,5 @@ option go_package = "github.com/mengseeker/nlink/core/api";
 message ForwardMeta {
     string network = 1;
     string address = 2;
+    string ID = 3;
 }
