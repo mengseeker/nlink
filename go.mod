@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/elazarl/goproxy v0.0.0-20231031074852-3ec07828be7a
+	github.com/google/uuid v1.3.0
 	github.com/ncruces/go-dns v1.2.5
 	github.com/oschwald/geoip2-golang v1.9.0
 	github.com/quic-go/quic-go v0.40.0
@@ -23,7 +24,6 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/jchv/go-winloader v0.0.0-20210711035445-715c2860da7e // indirect
