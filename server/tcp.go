@@ -22,7 +22,7 @@ func NewTCPServer(cfg ServerConfig, log *log.Logger) (*TCPServer, error) {
 	}
 	s := TCPServer{
 		Config: &cfg,
-		log:    log.With("server.type", "tcp"),
+		log:    log.With("server.net", "tcp"),
 	}
 	return &s, nil
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"regexp"
@@ -12,11 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/elazarl/goproxy"
 	"github.com/mengseeker/nlink/core/log"
 	"github.com/mengseeker/nlink/core/socks"
-
-	"github.com/mengseeker/nlink/core/api"
 )
 
 type RuleCondType string
@@ -84,7 +80,7 @@ func UnmashalProxyRule(raw string) (r Rule, err error) {
 	return r, nil
 }
 
-func (r Rule) Check(forwards map[string]*ForwardClient) error {
+func (r Rule) Check(forwards map[string]Forward) error {
 	for _, c := range r.Conds {
 		switch c.Cond {
 		case RuleCondType_HostMatch, RuleCondType_HostPrefix, RuleCondType_HostSuffix, RuleCondType_GEOIP, RuleCondType_HasServer:
@@ -232,7 +228,7 @@ func (r Rule) NewMatchFunc(pv *FuncProvider) func(mm MatchMeta) bool {
 	}
 }
 
-func (r Rule) NewRuleHandler(pv *FuncProvider, forwards map[string]*ForwardClient) RuleHandler {
+func (r Rule) NewRuleHandler(pv *FuncProvider, forwards map[string]Forward) RuleHandler {
 	switch r.Action {
 	case RuleActionType_Reject:
 		return &RejectRuleHandler{log: pv.log}
@@ -243,11 +239,6 @@ func (r Rule) NewRuleHandler(pv *FuncProvider, forwards map[string]*ForwardClien
 	default:
 		return &RejectRuleHandler{log: pv.log}
 	}
-}
-
-type RuleHandler interface {
-	HTTPRequest(req *http.Request) (resp *http.Response)
-	Conn(conn net.Conn, remote *api.ForwardMeta)
 }
 
 type RuleMapper struct {
@@ -261,7 +252,7 @@ func NewRuleMapper(
 	ctx context.Context,
 	rules []string,
 	pv *FuncProvider,
-	forwards map[string]*ForwardClient,
+	forwards map[string]Forward,
 ) (*RuleMapper, error) {
 
 	mp := RuleMapper{
@@ -306,59 +297,4 @@ func NewRuleMapper(
 	}()
 
 	return &mp, nil
-}
-
-type RejectRuleHandler struct {
-	log *log.Logger
-}
-
-func (h *RejectRuleHandler) HTTPRequest(req *http.Request) (resp *http.Response) {
-	h.log.Info("reject request", "url", req.URL)
-	return goproxy.NewResponse(req,
-		goproxy.ContentTypeText, http.StatusForbidden, http.StatusText(http.StatusForbidden))
-}
-
-func (h *RejectRuleHandler) Conn(conn net.Conn, remote *api.ForwardMeta) {
-	h.log.Info("reject connect", "address", remote.Address)
-	conn.Close()
-}
-
-type DirectRuleHandler struct {
-	log *log.Logger
-}
-
-func (h *DirectRuleHandler) HTTPRequest(req *http.Request) (resp *http.Response) {
-	h.log.Info("direct request", "url", req.URL)
-	// if return nil, goproxy will direct request
-	deleteRequestHeaders(req)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		h.log.With("url", req.URL.String()).Errorf("http call err: %v", err)
-		return NewErrHTTPResponse(req, err.Error())
-	}
-	return resp
-}
-
-func (h *DirectRuleHandler) Conn(conn net.Conn, remote *api.ForwardMeta) {
-	l := h.log.With("network", remote.Network, "address", remote.Address)
-	l.Info("direct connect")
-	defer conn.Close()
-	remoteConn, err := net.Dial(remote.Network, remote.Address)
-	if err != nil {
-		l.Info("dial remote err: %v", err)
-		return
-	}
-	defer remoteConn.Close()
-	wg := sync.WaitGroup{}
-	copy := func(w io.Writer, r io.Reader) {
-		defer wg.Done()
-		_, err := io.Copy(w, r)
-		if err != nil {
-			l.Errorf("copy data err: %v", err)
-		}
-	}
-	wg.Add(2)
-	go copy(remoteConn, conn)
-	go copy(conn, remoteConn)
-	wg.Wait()
 }

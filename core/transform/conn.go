@@ -10,6 +10,25 @@ import (
 	"github.com/mengseeker/nlink/core/log"
 )
 
+type Conn struct {
+	net.Conn
+	Once           sync.Once
+	AfterCloseHook func()
+}
+
+func (c *Conn) Close() error {
+	var err error
+	c.Once.Do(func() {
+		defer func() {
+			if c.AfterCloseHook != nil {
+				c.AfterCloseHook()
+			}
+		}()
+		err = c.Conn.Close()
+	})
+	return err
+}
+
 func ConnCopyAndWait(c1, c2 net.Conn, l *log.Logger) {
 	wg := sync.WaitGroup{}
 	copy := func(w, r net.Conn) {
@@ -36,6 +55,8 @@ func ConnCloseRead(r net.Conn) {
 		c.CancelRead(0)
 	} else if c, ok := r.(*tls.Conn); ok {
 		c.NetConn().(*net.TCPConn).CloseRead()
+	} else if c, ok := r.(*Conn); ok {
+		ConnCloseRead(c.Conn)
 	} else if c, ok := r.(*PeekConn); ok {
 		ConnCloseRead(c.Conn)
 	} else {
@@ -50,6 +71,8 @@ func ConnCloseWrite(w net.Conn) {
 		c.Close()
 	} else if c, ok := w.(*tls.Conn); ok {
 		c.NetConn().(*net.TCPConn).CloseWrite()
+	} else if c, ok := w.(*Conn); ok {
+		ConnCloseWrite(c.Conn)
 	} else if c, ok := w.(*PeekConn); ok {
 		ConnCloseWrite(c.Conn)
 	} else {

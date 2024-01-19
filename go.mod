@@ -3,7 +3,6 @@ module github.com/mengseeker/nlink
 go 1.20
 
 require (
-	github.com/elazarl/goproxy v0.0.0-20231031074852-3ec07828be7a
 	github.com/google/uuid v1.3.0
 	github.com/ncruces/go-dns v1.2.5
 	github.com/oschwald/geoip2-golang v1.9.0
@@ -13,11 +12,9 @@ require (
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 	google.golang.org/protobuf v1.31.0
-	gopkg.in/elazarl/goproxy.v1 v1.0.0-20180725130230-947c36da3153
 )
 
 require (
-	github.com/elazarl/goproxy/ext v0.0.0-20231031074852-3ec07828be7a // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect

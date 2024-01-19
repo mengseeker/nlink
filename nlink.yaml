@@ -34,6 +34,16 @@ client:
   - Name: local_tcp
     Addr: localhost:8899
     Net: tcp
+  Groups:
+  - Name: all-frontfirst
+    Selecter:
+      Type: frontfirst
+    Servers:
+    - tokyo_udp
+    - hongkong_udp
+    - tokyo_tcp
+    - hongkong_tcp
+
   Rules:
   # - 'host-suffix: ad.com, reject'
   # - 'host-suffix: .cn, direct'

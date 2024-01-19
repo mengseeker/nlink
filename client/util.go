@@ -2,10 +2,7 @@ package client
 
 import (
 	"crypto/tls"
-	"net/http"
 	"strings"
-
-	"gopkg.in/elazarl/goproxy.v1"
 )
 
 func NewClientTls(certFile, keyFile string) (tc *tls.Config, err error) {
@@ -19,26 +16,6 @@ func NewClientTls(certFile, keyFile string) (tc *tls.Config, err error) {
 		InsecureSkipVerify: true,
 	}
 	return
-}
-
-func NewErrHTTPResponse(req *http.Request, msg string) (resp *http.Response) {
-	return goproxy.NewResponse(req, goproxy.ContentTypeText, http.StatusBadGateway, msg)
-}
-
-func NewHTTPResponse(req *http.Request) (resp *http.Response) {
-	resp = &http.Response{}
-	resp.Request = req
-	resp.TransferEncoding = req.TransferEncoding
-	resp.Header = make(http.Header)
-	return
-}
-
-func deleteRequestHeaders(req *http.Request) {
-	req.RequestURI = "" // this must be reset when serving a request with the client
-	// req.Header.Del("Accept-Encoding")
-	for k := range ProxyHeaders {
-		req.Header.Del(k)
-	}
 }
 
 func ParseHost(host string) (domain, port string) {

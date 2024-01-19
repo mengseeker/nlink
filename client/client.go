@@ -28,6 +28,7 @@ type ProxyConfig struct {
 	Rules    []string
 	Servers  []ServerConfig
 	Resolver []ResolverConfig
+	Groups   []ForwardGroupConfig
 }
 
 type Proxy struct {
@@ -45,7 +46,7 @@ func NewProxy(ctx context.Context, cfg ProxyConfig) (p *Proxy, err error) {
 	}
 	p = &Proxy{
 		Config: &cfg,
-		log:    log.NewLogger().With("unit", "client"),
+		log:    log.NewLogger(),
 	}
 	for i := range p.Config.Servers {
 		if p.Config.Servers[i].Net == "" {
@@ -67,13 +68,26 @@ func NewProxy(ctx context.Context, cfg ProxyConfig) (p *Proxy, err error) {
 		return nil, err
 	}
 
-	forwards := map[string]*ForwardClient{}
+	forwards := map[string]Forward{}
+	forwardClients := map[string]*ForwardClient{}
 	for _, sc := range p.Config.Servers {
 		forward, err := NewForwardClient(ctx, sc, p.log)
 		if err != nil {
 			return nil, fmt.Errorf("new forwardclient %s err: %v", sc.Name, err)
 		}
 		forwards[sc.Name] = forward
+		forwardClients[sc.Name] = forward
+	}
+
+	for _, gc := range p.Config.Groups {
+		if _, ok := forwards[gc.Name]; ok {
+			return nil, fmt.Errorf("group name conflict with server name: %s", gc.Name)
+		}
+		g, err := NewForwardGroup(forwardClients, gc, p.log)
+		if err != nil {
+			return nil, fmt.Errorf("new group %s err: %v", gc.Name, err)
+		}
+		forwards[gc.Name] = g
 	}
 
 	mapper, err := NewRuleMapper(ctx, p.Config.Rules, provider, forwards)

@@ -1,11 +1,9 @@
 package client
 
 import (
-	"net"
 	"net/http"
 
 	"github.com/mengseeker/nlink/core/api"
-	"gopkg.in/elazarl/goproxy.v1"
 )
 
 var (
@@ -18,32 +16,55 @@ var (
 )
 
 type HTTPHandler struct {
-	*goproxy.ProxyHttpServer
-	// ruleMapper *RuleMapper
+	ruleMapper *RuleMapper
 }
 
-func NewHTTPHandler(mapper *RuleMapper) HTTPHandler {
-	h := HTTPHandler{
-		ProxyHttpServer: goproxy.NewProxyHttpServer(),
-		// ruleMapper:      mapper,
+func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "CONNECT" {
+		h.handleHTTPS(w, r)
+	} else {
+		h.handleHTTP(w, r)
 	}
-	h.ProxyHttpServer.OnRequest().DoFunc(
-		func(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-			return req, mapper.Match(NewMatchMetaFromHTTPRequest(req)).HTTPRequest(req)
-		})
-	h.ProxyHttpServer.OnRequest().HandleConnectFunc(
-		func(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
-			return &goproxy.ConnectAction{
-				Action: goproxy.ConnectHijack,
-				Hijack: func(req *http.Request, client net.Conn, ctx *goproxy.ProxyCtx) {
-					// client.Write([]byte("HTTP/1.0 200 Connection established\r\n\r\n"))
-					remote := api.ForwardMeta{
-						Network: "tcp",
-						Address: req.URL.Host,
-					}
-					mapper.Match(NewMatchMetaFromHTTPSHost(host)).Conn(client, &remote)
-				},
-			}, host
-		})
+}
+
+func (h *HTTPHandler) handleHTTPS(w http.ResponseWriter, r *http.Request) {
+	hij, ok := w.(http.Hijacker)
+	if !ok {
+		panic("httpserver does not support hijacking")
+	}
+
+	proxyClient, _, e := hij.Hijack()
+	if e != nil {
+		panic("Cannot hijack connection " + e.Error())
+	}
+	proxyClient.Write([]byte("HTTP/1.0 200 OK\r\n\r\n"))
+	remote := api.ForwardMeta{
+		Network: "tcp",
+		Address: r.URL.Host,
+	}
+	h.ruleMapper.Match(NewMatchMetaFromHTTPSHost(r.URL.Host)).Conn(proxyClient, &remote)
+}
+
+func (h *HTTPHandler) handleHTTP(w http.ResponseWriter, r *http.Request) {
+	if !r.URL.IsAbs() {
+		http.Error(w, "This is a proxy server. Does not respond to non-proxy requests.", 500)
+		return
+	}
+	deleteRequestHeaders(r)
+	h.ruleMapper.Match(NewMatchMetaFromHTTPRequest(r)).HTTPRequest(w, r)
+}
+
+func deleteRequestHeaders(req *http.Request) {
+	req.RequestURI = "" // this must be reset when serving a request with the client
+	// req.Header.Del("Accept-Encoding")
+	for k := range ProxyHeaders {
+		req.Header.Del(k)
+	}
+}
+
+func NewHTTPHandler(mapper *RuleMapper) *HTTPHandler {
+	h := &HTTPHandler{
+		ruleMapper: mapper,
+	}
 	return h
 }

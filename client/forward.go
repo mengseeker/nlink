@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,18 +19,23 @@ const (
 	ForwardConnPoolSize = 10
 )
 
+type Forward interface {
+	RuleHandler
+}
+
 type ForwardClient struct {
 	Log           *log.Logger
 	ForwardConfig ServerConfig
 	connPool      ConnPool
 	cancel        context.CancelFunc
 	httpClient    http.Client
+	connCount     atomic.Int32
 }
 
 func NewForwardClient(ctx context.Context, sc ServerConfig, l *log.Logger) (*ForwardClient, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	c := ForwardClient{
-		Log:           l.With("server.name", sc.Name, "server.type", sc.Net),
+		Log:           l.With("server.name", sc.Name, "server.net", sc.Net),
 		ForwardConfig: sc,
 		cancel:        cancel,
 	}
@@ -81,23 +87,31 @@ func (f *ForwardClient) Dial(remote *api.ForwardMeta) (net.Conn, error) {
 		remoteConn.Close()
 		return nil, errors.New("send metadata err: " + err.Error())
 	}
-	return remoteConn, nil
+	f.connCount.Add(1)
+	return &transform.Conn{
+		Conn: remoteConn,
+		AfterCloseHook: func() {
+			f.connCount.Add(-1)
+			f.Log.With("remote.network", remote.Network, "remote.address", remote.Address, "conn.id", remote.ID).Info("close forward")
+		},
+	}, nil
 }
 
-func (f *ForwardClient) HTTPRequest(req *http.Request) (resp *http.Response) {
-	l := f.Log.With("remote.network", "tcp", "remote.address", req.URL.Host)
+func (f *ForwardClient) HTTPRequest(w http.ResponseWriter, r *http.Request) {
+	l := f.Log.With("remote.network", "tcp", "remote.address", r.URL.Host)
 	l.Info("forward http")
-
-	deleteRequestHeaders(req)
-	resp, err := f.httpClient.Do(req)
+	resp, err := f.httpClient.Do(r)
 	if err != nil {
 		if errors.Is(err, io.EOF) {
 			err = errors.New("remote server close connection")
 		}
 		l.Errorf("request call err: %v", err)
-		return NewErrHTTPResponse(req, err.Error())
+		l.With("url", r.URL.String()).Errorf("http call err: %v", err)
+		ResponseError(w, err)
+		return
 	}
-	return resp
+	defer resp.Body.Close()
+	CopyHTTPResponse(w, resp)
 }
 
 func (f *ForwardClient) Conn(conn net.Conn, remote *api.ForwardMeta) {
@@ -108,9 +122,9 @@ func (f *ForwardClient) Conn(conn net.Conn, remote *api.ForwardMeta) {
 		f.Log.Errorf("dial remote err: %v", err)
 		return
 	}
+	defer remoteConn.Close()
 	l := f.Log.With("remote.network", remote.Network, "remote.address", remote.Address, "conn.id", remote.ID)
 	l.Info("forward conn")
-	defer remoteConn.Close()
 
 	transform.ConnCopyAndWait(conn, remoteConn, l)
 }
