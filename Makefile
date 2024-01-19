@@ -7,4 +7,4 @@ proto:
 
 build:
 	mkdir -p build/bin
-	go build -o build/bin/nlink cmd/main/main.go
+	go build -o build/bin/nlink main.go

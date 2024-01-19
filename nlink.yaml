@@ -16,10 +16,18 @@ client:
   - DoT: dns.pub
   - DoT: 185.222.222.222
   Servers:
-  - Name: tokyo
+  - Name: tokyo_udp
     Addr: p1.codenative.net:8899
-  - Name: hongkong
+    Net: udp
+  - Name: hongkong_udp
     Addr: p3.codenative.net:8899
+    Net: udp
+  - Name: tokyo_tcp
+    Addr: p1.codenative.net:8899
+    Net: tcp
+  - Name: hongkong_tcp
+    Addr: p3.codenative.net:8899
+    Net: tcp
   - Name: local_udp
     Addr: localhost:8899
     Net: udp
@@ -36,4 +44,4 @@ client:
   # - 'ip-cidr: 192.168.1.201/16, direct'
   # - 'has-server: tokyo && geoip: JP, forward: tokyo'
   # - 'geoip: CN, direct'
-  - 'match-all, forward: local_udp'
+  - 'match-all, forward: hongkong_udp'
