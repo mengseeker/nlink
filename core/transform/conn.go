@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/mengseeker/nlink/core/log"
+	"github.com/xtaci/kcp-go/v5"
 )
 
 type Conn struct {
@@ -53,8 +54,10 @@ func ConnCloseRead(r net.Conn) {
 		c.CloseRead()
 	} else if c, ok := r.(QUICConn); ok {
 		c.CancelRead(0)
+	} else if c, ok := r.(*kcp.UDPSession); ok {
+		c.Close()
 	} else if c, ok := r.(*tls.Conn); ok {
-		c.NetConn().(*net.TCPConn).CloseRead()
+		ConnCloseRead(c.NetConn())
 	} else if c, ok := r.(*Conn); ok {
 		ConnCloseRead(c.Conn)
 	} else if c, ok := r.(*PeekConn); ok {
@@ -69,8 +72,10 @@ func ConnCloseWrite(w net.Conn) {
 		c.CloseWrite()
 	} else if c, ok := w.(QUICConn); ok {
 		c.Close()
+	} else if c, ok := w.(*kcp.UDPSession); ok {
+		c.Close()
 	} else if c, ok := w.(*tls.Conn); ok {
-		c.NetConn().(*net.TCPConn).CloseWrite()
+		ConnCloseWrite(c.NetConn())
 	} else if c, ok := w.(*Conn); ok {
 		ConnCloseWrite(c.Conn)
 	} else if c, ok := w.(*PeekConn); ok {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/mengseeker/nlink/core/log"
@@ -80,24 +79,21 @@ func (pv *FuncProvider) HasServer(name string) bool {
 
 func (pv *FuncProvider) Resolv(domain string) (IP net.IP) {
 	records := make(chan net.IP)
-	wg := sync.WaitGroup{}
+	defer close(records)
 	tctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	call := func(rl resolver.Resolver) {
-		defer recover()
-		defer wg.Done()
+		// defer recover()
 		ip, err := rl.Resolv(tctx, domain)
 		if err != nil {
 			pv.log.Debugf("lookup %s err: %v", domain, err)
 			return
 		}
-		records <- ip
+		select {
+		case records <- ip:
+		case <-tctx.Done():
+		}
 	}
-	wg.Add(len(pv.resolvers))
-	go func() {
-		wg.Wait()
-		close(records)
-	}()
 	for i := range pv.resolvers {
 		go call(pv.resolvers[i])
 	}

@@ -53,5 +53,5 @@ client:
   # - 'ip-cidr: 172.16.0.0/12, direct'
   # - 'ip-cidr: 192.168.1.201/16, direct'
   # - 'has-server: tokyo && geoip: JP, forward: tokyo'
-  # - 'geoip: CN, direct'
-  - 'match-all, forward: hongkong_udp'
+  - 'geoip: CN, direct'
+  - 'match-all, forward: local_udp'

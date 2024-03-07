@@ -10,13 +10,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/mengseeker/nlink/client/connpool"
 	"github.com/mengseeker/nlink/core/api"
 	"github.com/mengseeker/nlink/core/log"
 	"github.com/mengseeker/nlink/core/transform"
-)
-
-const (
-	ForwardConnPoolSize = 10
 )
 
 type Forward interface {
@@ -26,32 +23,27 @@ type Forward interface {
 type ForwardClient struct {
 	Log           *log.Logger
 	ForwardConfig ServerConfig
-	connPool      ConnPool
+	connPool      connpool.ConnPool
 	cancel        context.CancelFunc
 	httpClient    http.Client
 	connCount     atomic.Int32
 }
 
 func NewForwardClient(ctx context.Context, sc ServerConfig, l *log.Logger) (*ForwardClient, error) {
+	var err error
+
 	ctx, cancel := context.WithCancel(ctx)
 	c := ForwardClient{
 		Log:           l.With("server.name", sc.Name, "server.net", sc.Net),
 		ForwardConfig: sc,
 		cancel:        cancel,
 	}
-	if sc.Net == "tcp" {
-		connPool, err := NewTCPConnectPool(sc.Name, sc.Addr, sc.Cert, sc.Key, ForwardConnPoolSize, l)
-		if err != nil {
-			return nil, err
-		}
-		c.connPool = connPool
-	} else {
-		connPool, err := NewUDPConnectPool(sc.Name, sc.Addr, sc.Cert, sc.Key, ForwardConnPoolSize, l)
-		if err != nil {
-			return nil, err
-		}
-		c.connPool = connPool
+
+	c.connPool, err = connpool.NewConnPool(sc.Name, sc.Addr, sc.Cert, sc.Key, sc.Net, l)
+	if err != nil {
+		return nil, err
 	}
+
 	c.httpClient = http.Client{
 		Transport: &http.Transport{
 			MaxIdleConns:    1000,

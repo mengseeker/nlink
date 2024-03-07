@@ -23,7 +23,7 @@ func NewQuicServer(cfg ServerConfig, log *log.Logger) (*QuicServer, error) {
 	}
 	s := QuicServer{
 		Config: &cfg,
-		Log:    log.With("server.net", "udp"),
+		Log:    log.With("server.net", "udp-quic"),
 	}
 	return &s, nil
 }
