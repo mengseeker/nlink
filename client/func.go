@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync/atomic"
 	"time"
 
 	"github.com/mengseeker/nlink/core/log"
@@ -82,16 +83,18 @@ func (pv *FuncProvider) Resolv(domain string) (IP net.IP) {
 	defer close(records)
 	tctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
+	var i atomic.Bool
 	call := func(rl resolver.Resolver) {
-		// defer recover()
 		ip, err := rl.Resolv(tctx, domain)
 		if err != nil {
 			pv.log.Debugf("lookup %s err: %v", domain, err)
 			return
 		}
-		select {
-		case records <- ip:
-		case <-tctx.Done():
+		if i.CompareAndSwap(false, true) {
+			select {
+			case records <- ip:
+			case <-tctx.Done():
+			}
 		}
 	}
 	for i := range pv.resolvers {
