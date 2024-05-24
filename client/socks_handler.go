@@ -6,10 +6,10 @@ import (
 	"net"
 	"strings"
 
-	"github.com/mengseeker/nlink/core/api"
 	"github.com/mengseeker/nlink/core/socks"
 	"github.com/mengseeker/nlink/core/socks/transport/socks4"
 	"github.com/mengseeker/nlink/core/socks/transport/socks5"
+	"github.com/mengseeker/nlink/core/transform"
 )
 
 type SocksCommand uint8
@@ -29,7 +29,7 @@ func (h *Socks4Handler) HandleConn(conn net.Conn) {
 		return
 	}
 	meta := socks.ParseSocksAddr(socks5.ParseAddr(addr))
-	remote := api.ForwardMeta{
+	remote := transform.Meta{
 		Network: "tcp",
 	}
 	if meta.Host != "" {
@@ -64,7 +64,7 @@ func (h *Socks5Handler) HandleConn(conn net.Conn) {
 		return
 	}
 	meta := socks.ParseSocksAddr(target)
-	remote := api.ForwardMeta{
+	remote := transform.Meta{
 		Network: "tcp",
 	}
 	if meta.Host != "" {

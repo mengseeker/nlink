@@ -1,6 +1,7 @@
 package client
 
 import (
+	"crypto/tls"
 	"strings"
 )
 
@@ -22,6 +23,19 @@ func ParseHost(host string) (domain, port string) {
 	domain = bs[0]
 	if len(bs) > 1 {
 		port = bs[1]
+	}
+	return
+}
+
+func NewClientTls(certFile, keyFile string) (tc *tls.Config, err error) {
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
+	tc = &tls.Config{
+		ServerName:         "x.test.example.com",
+		Certificates:       []tls.Certificate{cert},
+		InsecureSkipVerify: true,
 	}
 	return
 }

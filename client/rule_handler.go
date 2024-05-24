@@ -5,14 +5,13 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/mengseeker/nlink/core/api"
 	"github.com/mengseeker/nlink/core/log"
 	"github.com/mengseeker/nlink/core/transform"
 )
 
 type RuleHandler interface {
 	HTTPRequest(w http.ResponseWriter, r *http.Request)
-	Conn(conn net.Conn, remote *api.ForwardMeta)
+	Conn(conn net.Conn, remote *transform.Meta)
 }
 
 type RejectRuleHandler struct {
@@ -24,7 +23,7 @@ func (h *RejectRuleHandler) HTTPRequest(w http.ResponseWriter, r *http.Request) 
 	http.Error(w, "reject", http.StatusForbidden)
 }
 
-func (h *RejectRuleHandler) Conn(conn net.Conn, remote *api.ForwardMeta) {
+func (h *RejectRuleHandler) Conn(conn net.Conn, remote *transform.Meta) {
 	h.log.Info("reject connect", "address", remote.Address)
 	conn.Close()
 }
@@ -45,17 +44,14 @@ func (h *DirectRuleHandler) HTTPRequest(w http.ResponseWriter, r *http.Request) 
 	CopyHTTPResponse(w, resp)
 }
 
-func (h *DirectRuleHandler) Conn(conn net.Conn, remote *api.ForwardMeta) {
-	l := h.log.With("network", remote.Network, "address", remote.Address)
-	l.Info("direct connect")
+func (h *DirectRuleHandler) Conn(conn net.Conn, remote *transform.Meta) {
 	defer conn.Close()
 	remoteConn, err := net.Dial(remote.Network, remote.Address)
 	if err != nil {
-		l.Info("dial remote err: %v", err)
 		return
 	}
 	defer remoteConn.Close()
-	transform.ConnCopyAndWait(conn, remoteConn, l)
+	transform.TransformConn(conn, remoteConn, logger)
 }
 
 func ResponseError(w http.ResponseWriter, e error) {

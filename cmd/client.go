@@ -4,8 +4,6 @@ Copyright © 2022 mengseeker@yeah.net
 package cmd
 
 import (
-	"context"
-
 	"github.com/mengseeker/nlink/client"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -29,9 +27,7 @@ to quickly create a Cobra application.`,
 func runClient() {
 	var cfg client.ProxyConfig
 	cobra.CheckErr(viper.UnmarshalKey("client", &cfg))
-	s, err := client.NewProxy(context.Background(), cfg)
-	cobra.CheckErr(err)
-	cobra.CheckErr(s.Start())
+	cobra.CheckErr(client.Start(cfg))
 }
 
 func init() {

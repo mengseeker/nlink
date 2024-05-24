@@ -1,7 +1,6 @@
 package client
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -249,7 +248,6 @@ type RuleMapper struct {
 }
 
 func NewRuleMapper(
-	ctx context.Context,
 	rules []string,
 	pv *FuncProvider,
 	forwards map[string]Forward,
@@ -284,15 +282,11 @@ func NewRuleMapper(
 	go func() {
 		tk := time.NewTicker(time.Minute)
 		defer tk.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-tk.C:
-				mp.lock.Lock()
-				mp.cache = make(map[MatchMeta]RuleHandler, len(mp.cache)/2)
-				mp.lock.Unlock()
-			}
+
+		for range tk.C {
+			mp.lock.Lock()
+			mp.cache = make(map[MatchMeta]RuleHandler, len(mp.cache)/2)
+			mp.lock.Unlock()
 		}
 	}()
 

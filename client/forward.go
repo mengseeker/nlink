@@ -1,19 +1,20 @@
 package client
 
 import (
-	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"sync/atomic"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/mengseeker/nlink/client/connpool"
-	"github.com/mengseeker/nlink/core/api"
 	"github.com/mengseeker/nlink/core/log"
 	"github.com/mengseeker/nlink/core/transform"
+)
+
+var (
+	logger = log.NewLogger()
 )
 
 type Forward interface {
@@ -21,84 +22,38 @@ type Forward interface {
 }
 
 type ForwardClient struct {
-	Log           *log.Logger
-	ForwardConfig ServerConfig
-	connPool      connpool.ConnPool
-	cancel        context.CancelFunc
-	httpClient    http.Client
-	connCount     atomic.Int32
+	Config     ServerConfig
+	httpClient *http.Client
+	conn       *transform.PackConn
+	connErr    atomic.Bool
 }
 
-func NewForwardClient(ctx context.Context, sc ServerConfig, l *log.Logger) (*ForwardClient, error) {
-	var err error
-
-	ctx, cancel := context.WithCancel(ctx)
+func NewForwardClient(sc ServerConfig) (*ForwardClient, error) {
 	c := ForwardClient{
-		Log:           l.With("server.name", sc.Name, "server.net", sc.Net),
-		ForwardConfig: sc,
-		cancel:        cancel,
+		Config: sc,
 	}
+	err := c.dialServer()
+	go c.handlerReconnect()
 
-	c.connPool, err = connpool.NewConnPool(sc.Name, sc.Addr, sc.Cert, sc.Key, sc.Net, l)
+	return &c, err
+}
+
+func (f *ForwardClient) Dial(remote *transform.Meta) (net.Conn, error) {
+	logger.Infof("dial remote %s", remote.String())
+	conn, err := f.conn.DialStream(remote)
 	if err != nil {
+		f.connErr.Store(true)
 		return nil, err
 	}
-
-	c.httpClient = http.Client{
-		Transport: &http.Transport{
-			MaxIdleConns:    1000,
-			IdleConnTimeout: 3 * time.Minute,
-			Dial: func(network, addr string) (net.Conn, error) {
-				return c.Dial(&api.ForwardMeta{
-					Network: "tcp",
-					Address: addr,
-					ID:      uuid.NewString(),
-				})
-			},
-		},
-	}
-	go func() {
-		<-ctx.Done()
-		c.connPool.Release()
-	}()
-
-	return &c, nil
-}
-
-func (f *ForwardClient) Dial(remote *api.ForwardMeta) (net.Conn, error) {
-	remote.ID = uuid.NewString()
-	f.Log.With("remote.network", remote.Network, "remote.address", remote.Address, "conn.id", remote.ID).Info("dial forward")
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	remoteConn, err := f.connPool.Get(ctx)
-	if err != nil {
-		return nil, errors.New("unable to get remote conn, err: " + err.Error())
-	}
-	err = transform.SendMsg(remoteConn, remote)
-	if err != nil {
-		remoteConn.Close()
-		return nil, errors.New("send metadata err: " + err.Error())
-	}
-	f.connCount.Add(1)
-	return &transform.Conn{
-		Conn: remoteConn,
-		AfterCloseHook: func() {
-			f.connCount.Add(-1)
-			f.Log.With("remote.network", remote.Network, "remote.address", remote.Address, "conn.id", remote.ID).Info("close forward")
-		},
-	}, nil
+	return conn, err
 }
 
 func (f *ForwardClient) HTTPRequest(w http.ResponseWriter, r *http.Request) {
-	l := f.Log.With("remote.network", "tcp", "remote.address", r.URL.Host)
-	l.Info("forward http")
 	resp, err := f.httpClient.Do(r)
 	if err != nil {
 		if errors.Is(err, io.EOF) {
 			err = errors.New("remote server close connection")
 		}
-		l.Errorf("request call err: %v", err)
-		l.With("url", r.URL.String()).Errorf("http call err: %v", err)
 		ResponseError(w, err)
 		return
 	}
@@ -106,22 +61,58 @@ func (f *ForwardClient) HTTPRequest(w http.ResponseWriter, r *http.Request) {
 	CopyHTTPResponse(w, resp)
 }
 
-func (f *ForwardClient) Conn(conn net.Conn, remote *api.ForwardMeta) {
+func (f *ForwardClient) Conn(conn net.Conn, remote *transform.Meta) {
 	defer conn.Close()
-
+	l := logger.With("remote", remote.String())
 	remoteConn, err := f.Dial(remote)
 	if err != nil {
-		f.Log.Errorf("dial remote err: %v", err)
+		l.Errorf("connect to remote %s failed: %v", remote.String(), err)
 		return
 	}
 	defer remoteConn.Close()
-	l := f.Log.With("remote.network", remote.Network, "remote.address", remote.Address, "conn.id", remote.ID)
-	l.Info("forward conn")
 
-	transform.ConnCopyAndWait(conn, remoteConn, l)
+	transform.TransformConn(conn, remoteConn, l)
 }
 
-func (f *ForwardClient) Close() error {
-	f.cancel()
+func (f *ForwardClient) handlerReconnect() {
+	tk := time.NewTicker(3 * time.Second)
+	for range tk.C {
+		if f.connErr.Load() {
+			logger.Infof("reconnect server %s", f.Config.Addr)
+			f.conn.Close()
+			err := f.dialServer()
+			if err == nil {
+				f.connErr.Store(false)
+			}
+		}
+	}
+}
+
+func (f *ForwardClient) dialServer() error {
+	tlsConfig, err := NewClientTls(f.Config.Cert, f.Config.Key)
+	if err != nil {
+		return fmt.Errorf("create tls config err: %v", err)
+	}
+
+	conn, err := transform.DialPackConn(f.Config.Addr, tlsConfig)
+	if err != nil {
+		return fmt.Errorf("connect to server err: %v", err)
+	}
+
+	f.conn = conn
+
+	f.httpClient = &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:    1000,
+			IdleConnTimeout: 3 * time.Minute,
+			Dial: func(network, addr string) (net.Conn, error) {
+				return f.Dial(&transform.Meta{
+					Network: "tcp",
+					Address: addr,
+				})
+			},
+		},
+	}
+
 	return nil
 }

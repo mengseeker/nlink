@@ -1,10 +1,7 @@
 package client
 
 import (
-	"context"
 	"fmt"
-
-	"github.com/mengseeker/nlink/core/log"
 )
 
 type ServerConfig struct {
@@ -31,90 +28,63 @@ type ProxyConfig struct {
 	Groups   []ForwardGroupConfig
 }
 
-type Proxy struct {
-	Config *ProxyConfig
-
-	ctx    context.Context
-	cancel context.CancelFunc
-	lis    *Listener
-	log    *log.Logger
-}
-
-func NewProxy(ctx context.Context, cfg ProxyConfig) (p *Proxy, err error) {
+func Start(cfg ProxyConfig) error {
 	if cfg.Listen == "" {
 		cfg.Listen = ":7890"
 	}
-	p = &Proxy{
-		Config: &cfg,
-		log:    log.NewLogger(),
-	}
-	for i := range p.Config.Servers {
-		if p.Config.Servers[i].Net == "" {
-			p.Config.Servers[i].Net = p.Config.Net
+
+	for i := range cfg.Servers {
+		if cfg.Servers[i].Net == "" {
+			cfg.Servers[i].Net = cfg.Net
 		}
-		if p.Config.Servers[i].Cert == "" {
-			p.Config.Servers[i].Cert = p.Config.Cert
+		if cfg.Servers[i].Cert == "" {
+			cfg.Servers[i].Cert = cfg.Cert
 		}
-		if p.Config.Servers[i].Key == "" {
-			p.Config.Servers[i].Key = p.Config.Key
+		if cfg.Servers[i].Key == "" {
+			cfg.Servers[i].Key = cfg.Key
 		}
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	p.ctx = ctx
-	p.cancel = cancel
-	provider, err := NewFuncProvider(p.Config.Resolver, p.Config.Servers, p.log)
+	provider, err := NewFuncProvider(cfg.Resolver, cfg.Servers)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	forwards := map[string]Forward{}
 	forwardClients := map[string]*ForwardClient{}
-	for _, sc := range p.Config.Servers {
-		forward, err := NewForwardClient(ctx, sc, p.log)
+	for _, sc := range cfg.Servers {
+		forward, err := NewForwardClient(sc)
 		if err != nil {
-			return nil, fmt.Errorf("new forwardclient %s err: %v", sc.Name, err)
+			return fmt.Errorf("new forwardclient %s err: %v", sc.Name, err)
 		}
 		forwards[sc.Name] = forward
 		forwardClients[sc.Name] = forward
 	}
 
-	for _, gc := range p.Config.Groups {
+	for _, gc := range cfg.Groups {
 		if _, ok := forwards[gc.Name]; ok {
-			return nil, fmt.Errorf("group name conflict with server name: %s", gc.Name)
+			return fmt.Errorf("group name conflict with server name: %s", gc.Name)
 		}
-		g, err := NewForwardGroup(forwardClients, gc, p.log)
+		g, err := NewForwardGroup(forwardClients, gc)
 		if err != nil {
-			return nil, fmt.Errorf("new group %s err: %v", gc.Name, err)
+			return fmt.Errorf("new group %s err: %v", gc.Name, err)
 		}
 		forwards[gc.Name] = g
 	}
 
-	mapper, err := NewRuleMapper(ctx, p.Config.Rules, provider, forwards)
+	mapper, err := NewRuleMapper(cfg.Rules, provider, forwards)
 	if err != nil {
-		return nil, fmt.Errorf("parse rule err: %v", err)
+		return fmt.Errorf("parse rule err: %v", err)
 	}
 	httpHandler := NewHTTPHandler(mapper)
 	socks4Handler := NewSocks4Handler(mapper)
 	socks5Handler := NewSocks5Handler(mapper)
 
 	lis := &Listener{
-		Address:       p.Config.Listen,
-		Log:           p.log,
+		Address:       cfg.Listen,
 		HTTPHandler:   httpHandler,
 		Socks4Handler: socks4Handler,
 		Socks5Handler: socks5Handler,
 	}
-	p.lis = lis
-	return
-}
-
-func (p *Proxy) Start() (err error) {
-	p.log.Infof("proxy listen at: %s", p.Config.Listen)
-	return p.lis.ListenAndServe(p.ctx)
-}
-
-func (p *Proxy) Stop() (err error) {
-	p.cancel()
-	return nil
+	return lis.ListenAndServe()
 }

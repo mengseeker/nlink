@@ -1,14 +1,12 @@
 package client
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"sync"
 
-	"github.com/mengseeker/nlink/core/log"
 	"github.com/mengseeker/nlink/core/socks/transport/socks4"
 	"github.com/mengseeker/nlink/core/socks/transport/socks5"
 	"github.com/mengseeker/nlink/core/transform"
@@ -16,22 +14,19 @@ import (
 
 type Listener struct {
 	Address       string
-	Log           *log.Logger
 	HTTPHandler   http.Handler
 	Socks4Handler SockesHandler
 	Socks5Handler SockesHandler
 	TunnelHandler any // TODO
 
 	lis         net.Listener
-	ctx         context.Context
 	wg          sync.WaitGroup
 	httpConns   chan net.Conn
 	socks4Conns chan net.Conn
 	socks5Conns chan net.Conn
 }
 
-func (l *Listener) ListenAndServe(ctx context.Context) (err error) {
-	l.ctx = ctx
+func (l *Listener) ListenAndServe() (err error) {
 	lis, err := net.Listen("tcp", l.Address)
 	if err != nil {
 		return fmt.Errorf("listen address %s err: %s", l.Address, err)
@@ -60,19 +55,14 @@ func (l *Listener) ListenAndServe(ctx context.Context) (err error) {
 	}
 
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			conn, err := lis.Accept()
-			if err != nil {
-				if errors.Is(err, net.ErrClosed) {
-					return nil
-				}
-				return err
+		conn, err := lis.Accept()
+		if err != nil {
+			if errors.Is(err, net.ErrClosed) {
+				return nil
 			}
-			go l.handleTCPConn(conn)
+			return err
 		}
+		go l.handleTCPConn(conn)
 	}
 }
 
@@ -95,7 +85,7 @@ func (l *Listener) handleHTTPServer() {
 	if l.HTTPHandler != nil {
 		err := http.Serve(&HTTPListener{l}, l.HTTPHandler)
 		if err != nil && !errors.Is(err, net.ErrClosed) {
-			l.Log.Errorf("unexpected server close: %v", err)
+			logger.Errorf("unexpected server close: %v", err)
 		}
 	}
 }

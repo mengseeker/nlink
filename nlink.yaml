@@ -8,7 +8,6 @@ server:
 client:
   Listen: :7890
   System: false
-  Net: udp
   Cert: .dev/tls/client/xingbiao_cert.pem
   Key: .dev/tls/client/xingbiao_key.pem
   Resolver:
@@ -16,33 +15,21 @@ client:
   - DoT: dns.pub
   - DoT: 185.222.222.222
   Servers:
-  - Name: tokyo_udp
+  - Name: tokyo
     Addr: p1.codenative.net:8899
-    Net: udp
-  - Name: hongkong_udp
+  - Name: hongkong
     Addr: p3.codenative.net:8899
-    Net: udp
-  - Name: tokyo_tcp
-    Addr: p1.codenative.net:8899
-    Net: tcp
-  - Name: hongkong_tcp
-    Addr: p3.codenative.net:8899
-    Net: tcp
-  - Name: local_udp
+  - Name: local
     Addr: localhost:8899
-    Net: udp
-  - Name: local_tcp
+  - Name: local
     Addr: localhost:8899
-    Net: tcp
   Groups:
   - Name: all-frontfirst
     Selecter:
       Type: frontfirst
     Servers:
-    - tokyo_udp
-    - hongkong_udp
-    - tokyo_tcp
-    - hongkong_tcp
+    - tokyo
+    - hongkong
 
   Rules:
   # - 'host-suffix: ad.com, reject'
@@ -53,5 +40,5 @@ client:
   # - 'ip-cidr: 172.16.0.0/12, direct'
   # - 'ip-cidr: 192.168.1.201/16, direct'
   # - 'has-server: tokyo && geoip: JP, forward: tokyo'
-  - 'geoip: CN, direct'
-  - 'match-all, forward: local_udp'
+  # - 'geoip: CN, direct'
+  - 'match-all, forward: tokyo_tcp'

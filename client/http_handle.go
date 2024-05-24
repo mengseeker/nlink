@@ -3,7 +3,7 @@ package client
 import (
 	"net/http"
 
-	"github.com/mengseeker/nlink/core/api"
+	"github.com/mengseeker/nlink/core/transform"
 )
 
 var (
@@ -38,7 +38,7 @@ func (h *HTTPHandler) handleHTTPS(w http.ResponseWriter, r *http.Request) {
 		panic("Cannot hijack connection " + e.Error())
 	}
 	proxyClient.Write([]byte("HTTP/1.0 200 OK\r\n\r\n"))
-	remote := api.ForwardMeta{
+	remote := transform.Meta{
 		Network: "tcp",
 		Address: r.URL.Host,
 	}

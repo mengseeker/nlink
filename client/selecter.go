@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mengseeker/nlink/core/api"
+	"github.com/mengseeker/nlink/core/transform"
 )
 
-type Selecter func(remote *api.ForwardMeta) (selected *ForwardClient, err error)
+type Selecter func(remote *transform.Meta) (selected *ForwardClient, err error)
 
 type SelecterType string
 
@@ -49,7 +49,7 @@ func NewSelecter(clients []*ForwardClient, selecterConfig SelecterConfig) (Selec
 }
 
 func NewFrontFirstSelecter(clients []*ForwardClient) Selecter {
-	return func(remote *api.ForwardMeta) (selected *ForwardClient, err error) {
+	return func(remote *transform.Meta) (selected *ForwardClient, err error) {
 		return clients[0], nil
 	}
 }

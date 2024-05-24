@@ -5,8 +5,8 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/mengseeker/nlink/core/api"
 	"github.com/mengseeker/nlink/core/log"
+	"github.com/mengseeker/nlink/core/transform"
 )
 
 type ForwardGroup struct {
@@ -22,7 +22,7 @@ type ForwardGroupConfig struct {
 	Selecter SelecterConfig
 }
 
-func NewForwardGroup(clients map[string]*ForwardClient, config ForwardGroupConfig, log *log.Logger) (*ForwardGroup, error) {
+func NewForwardGroup(clients map[string]*ForwardClient, config ForwardGroupConfig) (*ForwardGroup, error) {
 	servers := []*ForwardClient{}
 	for _, server := range config.Servers {
 		servers = append(servers, clients[server])
@@ -43,7 +43,7 @@ func NewForwardGroup(clients map[string]*ForwardClient, config ForwardGroupConfi
 }
 
 func (f *ForwardGroup) HTTPRequest(w http.ResponseWriter, r *http.Request) {
-	remote := &api.ForwardMeta{
+	remote := &transform.Meta{
 		Network: "tcp",
 		Address: r.URL.Host,
 	}
@@ -56,7 +56,7 @@ func (f *ForwardGroup) HTTPRequest(w http.ResponseWriter, r *http.Request) {
 	fc.HTTPRequest(w, r)
 }
 
-func (f *ForwardGroup) Conn(conn net.Conn, remote *api.ForwardMeta) {
+func (f *ForwardGroup) Conn(conn net.Conn, remote *transform.Meta) {
 	fc, err := f.selecter(remote)
 	if err != nil {
 		f.log.Errorf("select err: %v", err)

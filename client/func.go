@@ -20,9 +20,8 @@ type FuncProvider struct {
 	servers   map[string]bool
 }
 
-func NewFuncProvider(rc []ResolverConfig, servers []ServerConfig, l *log.Logger) (pv *FuncProvider, err error) {
+func NewFuncProvider(rc []ResolverConfig, servers []ServerConfig) (pv *FuncProvider, err error) {
 	pv = &FuncProvider{
-		log:       l,
 		resolvers: make([]resolver.Resolver, 0),
 		servers:   map[string]bool{},
 	}

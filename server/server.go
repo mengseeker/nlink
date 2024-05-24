@@ -2,8 +2,14 @@ package server
 
 import (
 	"context"
+	"net"
 
 	"github.com/mengseeker/nlink/core/log"
+	"github.com/mengseeker/nlink/core/transform"
+)
+
+var (
+	logger = log.NewLogger()
 )
 
 type ServerConfig struct {
@@ -14,25 +20,58 @@ type ServerConfig struct {
 }
 
 func Start(c context.Context, cfg ServerConfig) {
-	l := log.NewLogger()
-	gs, err := NewTCPServer(cfg, l)
+	gs, err := NewServer(cfg)
 	if err != nil {
 		panic(err)
 	}
-	go func() {
-		if err := gs.Start(c); err != nil {
-			panic(err)
-		}
-	}()
+	if err := gs.Start(c); err != nil {
+		panic(err)
+	}
+}
 
-	qs, err := NewQuicServer(cfg, l)
-	if err != nil {
-		panic(err)
+type Server struct {
+	Config *ServerConfig
+}
+
+func NewServer(cfg ServerConfig) (*Server, error) {
+	if cfg.Addr == "" {
+		cfg.Addr = "0.0.0.0:8899"
 	}
-	go func() {
-		if err := qs.Start(c); err != nil {
-			panic(err)
+	s := Server{
+		Config: &cfg,
+	}
+	return &s, nil
+}
+
+func (s *Server) Start(c context.Context) (err error) {
+	tc, err := NewServerTls(s.Config.TLS_Cert, s.Config.TLS_Key, s.Config.TLS_CA)
+	if err != nil {
+		return
+	}
+
+	lis, err := transform.ListenPackConn(s.Config.Addr, tc)
+	if err != nil {
+		return
+	}
+
+	for {
+		stream, err := lis.Accept()
+		if err != nil {
+			logger.Error("accept", err)
+			continue
 		}
-	}()
-	<-c.Done()
+		go s.handleStream(c, stream)
+	}
+}
+
+func (s *Server) handleStream(_ context.Context, stream *transform.PackStream) {
+	defer stream.Close()
+	remoteConn, err := net.Dial(stream.ProxyMeta.Network, stream.ProxyMeta.Address)
+	if err != nil {
+		logger.Error("dial remote", err)
+		return
+	}
+	defer remoteConn.Close()
+
+	transform.TransformConn(stream, remoteConn, logger)
 }
