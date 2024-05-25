@@ -1,6 +1,6 @@
 .PHONY: build build-image push-image
 
-VERSION ?= v0.0.0
+VERSION ?= 0.0.0
 IMAGE ?= mengseeker/nlink:${VERSION}
 
 UPLOAD_DIR=http://hugohome.codenative.net:9000/public/nlink

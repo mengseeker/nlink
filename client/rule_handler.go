@@ -5,7 +5,6 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/mengseeker/nlink/core/log"
 	"github.com/mengseeker/nlink/core/transform"
 )
 
@@ -14,29 +13,25 @@ type RuleHandler interface {
 	Conn(conn net.Conn, remote *transform.Meta)
 }
 
-type RejectRuleHandler struct {
-	log *log.Logger
-}
+type RejectRuleHandler struct{}
 
 func (h *RejectRuleHandler) HTTPRequest(w http.ResponseWriter, r *http.Request) {
-	h.log.Info("reject request", "url", r.URL)
+	logger.Info("reject request", "url", r.URL)
 	http.Error(w, "reject", http.StatusForbidden)
 }
 
 func (h *RejectRuleHandler) Conn(conn net.Conn, remote *transform.Meta) {
-	h.log.Info("reject connect", "address", remote.Addr)
+	logger.Info("reject connect", "address", remote.Addr)
 	conn.Close()
 }
 
-type DirectRuleHandler struct {
-	log *log.Logger
-}
+type DirectRuleHandler struct{}
 
 func (h *DirectRuleHandler) HTTPRequest(w http.ResponseWriter, r *http.Request) {
-	h.log.Info("direct request", "url", r.URL)
+	logger.Info("direct request", "url", r.URL)
 	resp, err := http.DefaultClient.Do(r)
 	if err != nil {
-		h.log.With("url", r.URL.String()).Errorf("http call err: %v", err)
+		logger.With("url", r.URL.String()).Errorf("http call err: %v", err)
 		ResponseError(w, err)
 		return
 	}

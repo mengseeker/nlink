@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mengseeker/nlink/core/log"
 	"github.com/mengseeker/nlink/core/socks"
 )
 
@@ -169,7 +168,7 @@ func (rm *RuleMapper) Match(meta MatchMeta) RuleHandler {
 			return h
 		}
 	}
-	return &DirectRuleHandler{log.NewLogger()}
+	return &DirectRuleHandler{}
 }
 
 func (r RuleCond) NewMatchFunc(pv *FuncProvider) func(mm MatchMeta) bool {
@@ -230,13 +229,13 @@ func (r Rule) NewMatchFunc(pv *FuncProvider) func(mm MatchMeta) bool {
 func (r Rule) NewRuleHandler(pv *FuncProvider, forwards map[string]Forward) RuleHandler {
 	switch r.Action {
 	case RuleActionType_Reject:
-		return &RejectRuleHandler{log: pv.log}
+		return &RejectRuleHandler{}
 	case RuleActionType_Direct:
-		return &DirectRuleHandler{log: pv.log}
+		return &DirectRuleHandler{}
 	case RuleActionType_Forward:
 		return forwards[r.ActionParam]
 	default:
-		return &RejectRuleHandler{log: pv.log}
+		return &RejectRuleHandler{}
 	}
 }
 

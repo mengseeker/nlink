@@ -7,14 +7,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/mengseeker/nlink/core/log"
-
 	"github.com/mengseeker/nlink/core/geoip"
 	"github.com/mengseeker/nlink/core/resolver"
 )
 
 type FuncProvider struct {
-	log       *log.Logger
 	resolvers []resolver.Resolver
 	hosts     map[string]net.IP
 	servers   map[string]bool
@@ -86,7 +83,7 @@ func (pv *FuncProvider) Resolv(domain string) (IP net.IP) {
 	call := func(rl resolver.Resolver) {
 		ip, err := rl.Resolv(tctx, domain)
 		if err != nil {
-			pv.log.Debugf("lookup %s err: %v", domain, err)
+			logger.Debugf("lookup %s err: %v", domain, err)
 			return
 		}
 		if i.CompareAndSwap(false, true) {
