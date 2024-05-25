@@ -2,7 +2,7 @@
 
 set -ex
 
-OUTPUT_DIR=.dev/tls-mvp
+OUTPUT_DIR=.dev/tls
 CURRENT_DIR=$(cd `dirname $0`; pwd)
 config_file=${CURRENT_DIR}/openssl.cnf
 
@@ -36,7 +36,7 @@ openssl req -new \
   -key ${OUTPUT_DIR}/server_key.pem \
   -days 3650 \
   -out ${OUTPUT_DIR}/server_csr.pem \
-  -subj /C=CN/ST=ShangHai/L=ShangHai/O=gRPC/CN=10.4.196.107/ \
+  -subj /C=CN/ST=ShangHai/L=ShangHai/O=gRPC/CN=example.com/ \
   -config ${config_file} \
   -reqexts test_server
 openssl x509 -req \

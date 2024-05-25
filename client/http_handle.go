@@ -39,8 +39,8 @@ func (h *HTTPHandler) handleHTTPS(w http.ResponseWriter, r *http.Request) {
 	}
 	proxyClient.Write([]byte("HTTP/1.0 200 OK\r\n\r\n"))
 	remote := transform.Meta{
-		Network: "tcp",
-		Address: r.URL.Host,
+		Net: "tcp",
+		Addr: r.URL.Host,
 	}
 	h.ruleMapper.Match(NewMatchMetaFromHTTPSHost(r.URL.Host)).Conn(proxyClient, &remote)
 }

@@ -30,16 +30,16 @@ func (h *Socks4Handler) HandleConn(conn net.Conn) {
 	}
 	meta := socks.ParseSocksAddr(socks5.ParseAddr(addr))
 	remote := transform.Meta{
-		Network: "tcp",
+		Net: "tcp",
 	}
 	if meta.Host != "" {
-		remote.Address = meta.Host
+		remote.Addr = meta.Host
 	} else {
 		dst := meta.DstIP.String()
 		if strings.Contains(dst, ":") {
-			remote.Address = fmt.Sprintf("[%s]:%s", dst, meta.DstPort)
+			remote.Addr = fmt.Sprintf("[%s]:%s", dst, meta.DstPort)
 		}
-		remote.Address = fmt.Sprintf("%s:%s", dst, meta.DstPort)
+		remote.Addr = fmt.Sprintf("%s:%s", dst, meta.DstPort)
 	}
 	h.mapper.Match(NewMatchMetaFromSocksMeta(meta)).Conn(conn, &remote)
 }
@@ -65,16 +65,16 @@ func (h *Socks5Handler) HandleConn(conn net.Conn) {
 	}
 	meta := socks.ParseSocksAddr(target)
 	remote := transform.Meta{
-		Network: "tcp",
+		Net: "tcp",
 	}
 	if meta.Host != "" {
-		remote.Address = meta.Host + ":" + meta.DstPort
+		remote.Addr = meta.Host + ":" + meta.DstPort
 	} else {
 		dst := meta.DstIP.String()
 		if strings.Contains(dst, ":") {
-			remote.Address = fmt.Sprintf("[%s]:%s", dst, meta.DstPort)
+			remote.Addr = fmt.Sprintf("[%s]:%s", dst, meta.DstPort)
 		}
-		remote.Address = fmt.Sprintf("%s:%s", dst, meta.DstPort)
+		remote.Addr = fmt.Sprintf("%s:%s", dst, meta.DstPort)
 	}
 	h.mapper.Match(NewMatchMetaFromSocksMeta(meta)).Conn(conn, &remote)
 }

@@ -16,7 +16,7 @@
 .nlink.yaml
 .dev/
 .vscode/
-build/bin
+build/
 node_modules
 frontend/dist
 .DS_Store

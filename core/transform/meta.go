@@ -6,16 +6,20 @@ import (
 )
 
 type Meta struct {
-	Network string // tcp, udp
-	Address string // host:port
+	Net  string // tcp, udp
+	Addr string // host:port
 }
 
 func (m *Meta) Marshal() []byte {
-	return []byte(m.Network + "://" + m.Address)
+	return []byte(m.Net + "://" + m.Addr)
 }
 
 func (m *Meta) String() string {
-	return m.Network + "://" + m.Address
+	return m.Net + "://" + m.Addr
+}
+
+func (m *Meta) Network() string {
+	return m.Net
 }
 
 func (m *Meta) Unmarshal(data []byte) error {
@@ -23,7 +27,7 @@ func (m *Meta) Unmarshal(data []byte) error {
 	if len(parts) != 2 {
 		return errors.New("invalid meta data")
 	}
-	m.Network = string(parts[0])
-	m.Address = string(parts[1])
+	m.Net = string(parts[0])
+	m.Addr = string(parts[1])
 	return nil
 }

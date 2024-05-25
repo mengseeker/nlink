@@ -8,7 +8,16 @@ import (
 	"github.com/mengseeker/nlink/core/log"
 )
 
+const (
+	BUFFER_SIZE = PACK_MAX_DATA_LEN
+)
+
+var (
+	logger = log.NewLogger()
+)
+
 func TransformConn(local, remote net.Conn, logger *log.Logger) {
+	// logger.Infof("transforming %v <-> %v", local.RemoteAddr(), remote.RemoteAddr())
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	go func() {
@@ -16,7 +25,7 @@ func TransformConn(local, remote net.Conn, logger *log.Logger) {
 		defer CloseWrite(local)
 		_, err := io.Copy(local, remote)
 		if err != nil && logger != nil {
-			logger.Errorf("copy from remote to local error: %v", err)
+			logger.Debugf("copy from remote to local error: %v", err)
 		}
 	}()
 
@@ -25,7 +34,7 @@ func TransformConn(local, remote net.Conn, logger *log.Logger) {
 		defer CloseWrite(remote)
 		_, err := io.Copy(remote, local)
 		if err != nil && logger != nil {
-			logger.Errorf("copy from local to remote error: %v", err)
+			logger.Debugf("copy from local to remote error: %v", err)
 		}
 	}()
 	wg.Wait()

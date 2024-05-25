@@ -24,7 +24,7 @@ func (h *RejectRuleHandler) HTTPRequest(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *RejectRuleHandler) Conn(conn net.Conn, remote *transform.Meta) {
-	h.log.Info("reject connect", "address", remote.Address)
+	h.log.Info("reject connect", "address", remote.Addr)
 	conn.Close()
 }
 
@@ -46,7 +46,7 @@ func (h *DirectRuleHandler) HTTPRequest(w http.ResponseWriter, r *http.Request) 
 
 func (h *DirectRuleHandler) Conn(conn net.Conn, remote *transform.Meta) {
 	defer conn.Close()
-	remoteConn, err := net.Dial(remote.Network, remote.Address)
+	remoteConn, err := net.Dial(remote.Net, remote.Addr)
 	if err != nil {
 		return
 	}

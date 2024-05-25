@@ -5,13 +5,11 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/mengseeker/nlink/core/log"
 	"github.com/mengseeker/nlink/core/transform"
 )
 
 type ForwardGroup struct {
 	cfg      ForwardGroupConfig
-	log      *log.Logger
 	servers  []*ForwardClient
 	selecter Selecter
 }
@@ -36,7 +34,6 @@ func NewForwardGroup(clients map[string]*ForwardClient, config ForwardGroupConfi
 	}
 	return &ForwardGroup{
 		cfg:      config,
-		log:      log.With("group", config.Name),
 		servers:  servers,
 		selecter: selecter,
 	}, nil
@@ -44,12 +41,11 @@ func NewForwardGroup(clients map[string]*ForwardClient, config ForwardGroupConfi
 
 func (f *ForwardGroup) HTTPRequest(w http.ResponseWriter, r *http.Request) {
 	remote := &transform.Meta{
-		Network: "tcp",
-		Address: r.URL.Host,
+		Net:  "tcp",
+		Addr: r.URL.Host,
 	}
 	fc, err := f.selecter(remote)
 	if err != nil {
-		f.log.Errorf("select err: %v", err)
 		ResponseError(w, err)
 		return
 	}
@@ -59,7 +55,6 @@ func (f *ForwardGroup) HTTPRequest(w http.ResponseWriter, r *http.Request) {
 func (f *ForwardGroup) Conn(conn net.Conn, remote *transform.Meta) {
 	fc, err := f.selecter(remote)
 	if err != nil {
-		f.log.Errorf("select err: %v", err)
 		conn.Close()
 		return
 	}

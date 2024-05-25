@@ -2,14 +2,19 @@ package server
 
 import (
 	"context"
-	"net"
+	"crypto/tls"
+	"fmt"
+	"time"
 
 	"github.com/mengseeker/nlink/core/log"
-	"github.com/mengseeker/nlink/core/transform"
 )
 
 var (
 	logger = log.NewLogger()
+)
+
+const (
+	DialTimeout = 3 * time.Second
 )
 
 type ServerConfig struct {
@@ -49,29 +54,17 @@ func (s *Server) Start(c context.Context) (err error) {
 		return
 	}
 
-	lis, err := transform.ListenPackConn(s.Config.Addr, tc)
+	lis, err := tls.Listen("tcp", s.Config.Addr, tc)
 	if err != nil {
-		return
+		return fmt.Errorf("failed to listen: %v", err)
 	}
 
 	for {
-		stream, err := lis.Accept()
+		conn, err := lis.Accept()
 		if err != nil {
 			logger.Error("accept", err)
 			continue
 		}
-		go s.handleStream(c, stream)
+		go s.Serve(conn)
 	}
-}
-
-func (s *Server) handleStream(_ context.Context, stream *transform.PackStream) {
-	defer stream.Close()
-	remoteConn, err := net.Dial(stream.ProxyMeta.Network, stream.ProxyMeta.Address)
-	if err != nil {
-		logger.Error("dial remote", err)
-		return
-	}
-	defer remoteConn.Close()
-
-	transform.TransformConn(stream, remoteConn, logger)
 }

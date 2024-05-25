@@ -5,7 +5,7 @@ import (
 )
 
 type ServerConfig struct {
-	Net  string
+	Pool PoolConfig
 	Name string
 	Addr string
 	Cert string
@@ -34,9 +34,6 @@ func Start(cfg ProxyConfig) error {
 	}
 
 	for i := range cfg.Servers {
-		if cfg.Servers[i].Net == "" {
-			cfg.Servers[i].Net = cfg.Net
-		}
 		if cfg.Servers[i].Cert == "" {
 			cfg.Servers[i].Cert = cfg.Cert
 		}

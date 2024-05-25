@@ -1,51 +1,20 @@
 package log
 
 import (
-	"fmt"
-	"io"
 	"os"
 
-	"golang.org/x/exp/slog"
+	"go.uber.org/zap"
 )
 
-var Out io.Writer = os.Stdout
-
-type Logger struct {
-	slog.Logger
-}
+type Logger = zap.SugaredLogger
 
 func NewLogger() *Logger {
-	opt := slog.HandlerOptions{
-		// AddSource: true,
-		// Level: slog.LevelDebug,
+	cfg := zap.NewDevelopmentConfig()
+	cfg.Development = false
+	cfg.DisableStacktrace = true
+	if os.Getenv("DEBUG") != "1" {
+		cfg.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	}
-	if os.Getenv("DEBUG") == "true" {
-		opt.Level = slog.LevelDebug
-	}
-	l := slog.New(slog.NewTextHandler(Out, &opt))
-	return &Logger{
-		Logger: *l,
-	}
-}
-
-func (l *Logger) Debugf(format string, vals ...any) {
-	l.Logger.Debug(fmt.Sprintf(format, vals...))
-}
-
-func (l *Logger) Infof(format string, vals ...any) {
-	l.Logger.Info(fmt.Sprintf(format, vals...))
-}
-
-func (l *Logger) Warnf(format string, vals ...any) {
-	l.Logger.Warn(fmt.Sprintf(format, vals...))
-}
-
-func (l *Logger) Errorf(format string, vals ...any) {
-	l.Logger.Error(fmt.Sprintf(format, vals...))
-}
-
-func (l *Logger) With(args ...any) *Logger {
-	return &Logger{
-		Logger: *l.Logger.With(args...),
-	}
+	l, _ := cfg.Build(zap.AddCaller())
+	return l.Sugar()
 }

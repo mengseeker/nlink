@@ -11,25 +11,25 @@ client:
   Cert: .dev/tls/client/xingbiao_cert.pem
   Key: .dev/tls/client/xingbiao_key.pem
   Resolver:
-  - DoT: 223.6.6.6
-  - DoT: dns.pub
-  - DoT: 185.222.222.222
+  # - DoT: 223.6.6.6
+  # - DoT: dns.pub
+  # - DoT: 185.222.222.222
   Servers:
-  - Name: tokyo
-    Addr: p1.codenative.net:8899
+  # - Name: tokyo
+  #   Addr: p1.codenative.net:8899
   - Name: hongkong
-    Addr: p3.codenative.net:8899
+    Addr: p3.codenative.net:9000
   - Name: local
     Addr: localhost:8899
-  - Name: local
-    Addr: localhost:8899
-  Groups:
-  - Name: all-frontfirst
-    Selecter:
-      Type: frontfirst
-    Servers:
-    - tokyo
-    - hongkong
+    MaxConns: 200
+    IdleTimeout: 1h
+  # Groups:
+  # - Name: all-frontfirst
+  #   Selecter:
+  #     Type: frontfirst
+  #   Servers:
+  #   - tokyo
+  #   - hongkong
 
   Rules:
   # - 'host-suffix: ad.com, reject'
@@ -41,4 +41,4 @@ client:
   # - 'ip-cidr: 192.168.1.201/16, direct'
   # - 'has-server: tokyo && geoip: JP, forward: tokyo'
   # - 'geoip: CN, direct'
-  - 'match-all, forward: tokyo_tcp'
+  - 'match-all, forward: hongkong'
