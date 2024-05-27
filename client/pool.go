@@ -72,25 +72,30 @@ const (
 	DefaultMaxConns    = 200
 	DefaultIdleTimeout = 10 * time.Minute
 	// DefaultIdleTimeout = 10 * time.Second
+	DefaultMaxIdle = 3
 )
 
 type PoolConfig struct {
 	MaxConns    int
 	IdleTimeout time.Duration
+	MaxIdle     int
 }
 
-func NewConnPool(cfg PoolConfig, dialer func() (Conn, error)) *ConnPool {
+func NewConnPool(cfg ServerConfig, dialer func() (Conn, error)) *ConnPool {
 	if cfg.MaxConns == 0 {
 		cfg.MaxConns = DefaultMaxConns
 	}
 	if cfg.IdleTimeout == 0 {
 		cfg.IdleTimeout = DefaultIdleTimeout
 	}
+	if cfg.MaxIdle < 0 {
+		cfg.MaxIdle = DefaultMaxIdle
+	}
 
 	pl := &ConnPool{
 		MaxConns:    cfg.MaxConns,
 		IdleTimeout: cfg.IdleTimeout,
-		conns:       make(chan Conn),
+		conns:       make(chan Conn, cfg.MaxIdle),
 		putChan:     make(chan *putBackConn, DefaultMaxConns),
 	}
 

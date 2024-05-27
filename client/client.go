@@ -1,15 +1,21 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"time"
 )
 
 type ServerConfig struct {
-	Pool PoolConfig
 	Name string
 	Addr string
 	Cert string
 	Key  string
+
+	MaxConns    int
+	IdleTimeout time.Duration
+	MaxIdle     int
 }
 
 type ResolverConfig struct {
@@ -41,6 +47,11 @@ func Start(cfg ProxyConfig) error {
 			cfg.Servers[i].Key = cfg.Key
 		}
 	}
+
+	fmt.Printf("start proxy with config:\n")
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	encoder.Encode(cfg)
 
 	provider, err := NewFuncProvider(cfg.Resolver, cfg.Servers)
 	if err != nil {

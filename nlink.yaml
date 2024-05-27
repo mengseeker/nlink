@@ -24,6 +24,7 @@ client:
     Addr: localhost:8899
     MaxConns: 200
     IdleTimeout: 1h
+    MaxIdle: 1
   # Groups:
   # - Name: all-frontfirst
   #   Selecter:

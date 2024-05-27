@@ -32,7 +32,7 @@ func NewForwardClient(config ServerConfig) (*ForwardClient, error) {
 		return nil, fmt.Errorf("create tls config err: %v", err)
 	}
 
-	pool := NewConnPool(config.Pool, func() (Conn, error) {
+	pool := NewConnPool(config, func() (Conn, error) {
 		return transform.DialPackConn(config.Name, config.Addr, tlsConfig)
 	})
 
