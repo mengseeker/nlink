@@ -46,7 +46,7 @@ func (s *Server) handleConnect(conn Conn, meta *transform.Meta) {
 	defer conn.Close()
 	remoteConn, err := net.DialTimeout(meta.Net, meta.Addr, DialTimeout)
 	if err != nil {
-		logger.Error("dial remote: ", err)
+		logger.Warnf("dial remote %s error: %v", meta.String(), err)
 		return
 	}
 	defer remoteConn.Close()
