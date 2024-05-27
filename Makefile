@@ -1,9 +1,11 @@
-.PHONY: build build-image push-image
+.PHONY: all build build-image push-image
 
 VERSION ?= latest
 IMAGE ?= mengseeker/nlink:${VERSION}
 
 UPLOAD_DIR=http://hugohome.codenative.net:9000/public/nlink
+
+all: build build-image push-image push
 
 build:
 	go build -o build/nlink main.go

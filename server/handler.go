@@ -17,10 +17,6 @@ type Conn interface {
 	Disconnect(reason string) error
 }
 
-func ServeConn(conn net.Conn) {
-
-}
-
 func (s *Server) Serve(conn net.Conn) {
 	defer conn.Close()
 	pc, err := transform.AcceptPackConn(conn)
