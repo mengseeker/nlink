@@ -60,7 +60,7 @@ type ConnPool struct {
 	IdleTimeout time.Duration
 
 	conns   chan Conn
-	putChan chan Conn
+	putChan chan *putBackConn
 
 	disconnectNum int
 	dialServerNum int
@@ -91,7 +91,7 @@ func NewConnPool(cfg PoolConfig, dialer func() (Conn, error)) *ConnPool {
 		MaxConns:    cfg.MaxConns,
 		IdleTimeout: cfg.IdleTimeout,
 		conns:       make(chan Conn),
-		putChan:     make(chan Conn, DefaultMaxConns),
+		putChan:     make(chan *putBackConn, DefaultMaxConns),
 	}
 
 	pl.Dialer = func() (Conn, error) {
@@ -140,40 +140,42 @@ func (p *ConnPool) DialRemote(remote *transform.Meta) (Conn, error) {
 	return conn, err
 }
 
+type putBackConn struct {
+	conn    Conn
+	lastUse time.Time
+}
+
 func (p *ConnPool) handlePut() {
-	tk := time.NewTicker(p.IdleTimeout)
-	idle := false
+	tm := time.NewTimer(p.IdleTimeout)
+	var leftTime time.Duration
 	for {
 		conn := <-p.putChan
-		if err := conn.Reset(); err != nil {
-			p.DisconnectConn(conn, "reset error")
+		leftTime = time.Until(conn.lastUse.Add(p.IdleTimeout))
+		if leftTime <= time.Second {
+			p.DisconnectConn(conn.conn, "idle timeout")
 			continue
 		}
 
-		if idle {
-			select {
-			case p.conns <- conn:
-				idle = false
-			default:
-				p.DisconnectConn(conn, "idle timeout")
-			}
-			continue
-		}
+		tm.Reset(leftTime)
 
 		select {
-		case p.conns <- conn:
+		case p.conns <- conn.conn:
 			continue
-		case <-tk.C:
-			idle = true
-			p.DisconnectConn(conn, "idle timeout")
+		case <-tm.C:
+			p.DisconnectConn(conn.conn, "idle timeout")
 		}
 	}
 }
 
 func (p *ConnPool) Put(conn Conn) {
 	p.recoverNum++
+	if err := conn.Reset(); err != nil {
+		p.DisconnectConn(conn, "reset error")
+		return
+	}
+
 	select {
-	case p.putChan <- conn:
+	case p.putChan <- &putBackConn{conn: conn, lastUse: time.Now()}:
 		return
 	default:
 		p.DisconnectConn(conn, "pool is full")
