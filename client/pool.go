@@ -132,7 +132,7 @@ func (p *ConnPool) DialRemote(remote *transform.Meta) (Conn, error) {
 	}
 
 	p.dialRemoteNum++
-	logger.Infof("dial remote %s", remote.String())
+	logger.Infof("proxy to %s", remote.String())
 
 	logger.With(
 		zap.Int("idle_conn", len(p.putChan)),
