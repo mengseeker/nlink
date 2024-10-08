@@ -25,6 +25,11 @@ func (r *resolver) Resolv(ctx context.Context, domain string) (net.IP, error) {
 	if len(ips) == 0 {
 		return nil, &net.DNSError{Err: "no ip address", Server: r.Server, Name: domain}
 	}
+	for _, ip := range ips {
+		if ip = ip.To4(); ip != nil {
+			return ip, nil
+		}
+	}
 	return ips[0], err
 }
 

@@ -28,7 +28,7 @@ func (h *RejectRuleHandler) Conn(conn net.Conn, remote *transform.Meta) {
 type DirectRuleHandler struct{}
 
 func (h *DirectRuleHandler) HTTPRequest(w http.ResponseWriter, r *http.Request) {
-	logger.Info("direct request", "url", r.URL)
+	logger.With("url", r.URL).Info("direct request")
 	resp, err := http.DefaultClient.Do(r)
 	if err != nil {
 		logger.With("url", r.URL.String()).Errorf("http call err: %v", err)

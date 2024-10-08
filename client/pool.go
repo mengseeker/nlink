@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/mengseeker/nlink/core/transform"
-	"go.uber.org/zap"
 )
 
 type Conn interface {
@@ -62,10 +61,10 @@ type ConnPool struct {
 	conns   chan Conn
 	putChan chan *putBackConn
 
-	disconnectNum int
-	dialServerNum int
-	dialRemoteNum int
-	recoverNum    int
+	// disconnectNum int
+	// dialServerNum int
+	// dialRemoteNum int
+	// recoverNum    int
 }
 
 const (
@@ -100,7 +99,7 @@ func NewConnPool(cfg ServerConfig, dialer func() (Conn, error)) *ConnPool {
 	}
 
 	pl.Dialer = func() (Conn, error) {
-		pl.dialServerNum++
+		// pl.dialServerNum++
 		return dialer()
 	}
 
@@ -131,17 +130,17 @@ func (p *ConnPool) DialRemote(remote *transform.Meta) (Conn, error) {
 		return nil, err
 	}
 
-	p.dialRemoteNum++
+	// p.dialRemoteNum++
 	logger.Infof("proxy to %s", remote.String())
 
-	logger.With(
-		zap.Int("idle_conn", len(p.putChan)),
-		zap.Int("dial_remote", p.dialRemoteNum),
-		zap.Int("dial_server", p.dialServerNum),
-		zap.Int("recover", p.recoverNum),
-		zap.Int("disconnect", p.disconnectNum),
-		zap.Int("used_conn", p.dialServerNum-p.disconnectNum),
-	).Debug("dial status")
+	// logger.With(
+	// 	zap.Int("idle_conn", len(p.putChan)),
+	// 	zap.Int("dial_remote", p.dialRemoteNum),
+	// 	zap.Int("dial_server", p.dialServerNum),
+	// 	zap.Int("recover", p.recoverNum),
+	// 	zap.Int("disconnect", p.disconnectNum),
+	// 	zap.Int("used_conn", p.dialServerNum-p.disconnectNum),
+	// ).Debug("dial status")
 	return conn, err
 }
 
@@ -173,7 +172,7 @@ func (p *ConnPool) handlePut() {
 }
 
 func (p *ConnPool) Put(conn Conn) {
-	p.recoverNum++
+	// p.recoverNum++
 	if err := conn.Reset(); err != nil {
 		p.DisconnectConn(conn, "reset error")
 		return
@@ -188,6 +187,6 @@ func (p *ConnPool) Put(conn Conn) {
 }
 
 func (p *ConnPool) DisconnectConn(conn Conn, reason string) {
-	p.disconnectNum++
+	// p.disconnectNum++
 	conn.Disconnect(reason)
 }

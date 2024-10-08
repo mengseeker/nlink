@@ -1,10 +1,8 @@
 package client
 
 import (
-	"fmt"
 	"io"
 	"net"
-	"strings"
 
 	"github.com/mengseeker/nlink/core/socks"
 	"github.com/mengseeker/nlink/core/socks/transport/socks4"
@@ -30,16 +28,8 @@ func (h *Socks4Handler) HandleConn(conn net.Conn) {
 	}
 	meta := socks.ParseSocksAddr(socks5.ParseAddr(addr))
 	remote := transform.Meta{
-		Net: "tcp",
-	}
-	if meta.Host != "" {
-		remote.Addr = meta.Host
-	} else {
-		dst := meta.DstIP.String()
-		if strings.Contains(dst, ":") {
-			remote.Addr = fmt.Sprintf("[%s]:%s", dst, meta.DstPort)
-		}
-		remote.Addr = fmt.Sprintf("%s:%s", dst, meta.DstPort)
+		Net:  "tcp",
+		Addr: meta.RemoteAddress(),
 	}
 	h.mapper.Match(NewMatchMetaFromSocksMeta(meta)).Conn(conn, &remote)
 }
@@ -65,16 +55,8 @@ func (h *Socks5Handler) HandleConn(conn net.Conn) {
 	}
 	meta := socks.ParseSocksAddr(target)
 	remote := transform.Meta{
-		Net: "tcp",
-	}
-	if meta.Host != "" {
-		remote.Addr = meta.Host + ":" + meta.DstPort
-	} else {
-		dst := meta.DstIP.String()
-		if strings.Contains(dst, ":") {
-			remote.Addr = fmt.Sprintf("[%s]:%s", dst, meta.DstPort)
-		}
-		remote.Addr = fmt.Sprintf("%s:%s", dst, meta.DstPort)
+		Net:  "tcp",
+		Addr: meta.RemoteAddress(),
 	}
 	h.mapper.Match(NewMatchMetaFromSocksMeta(meta)).Conn(conn, &remote)
 }
